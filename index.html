@@ -4,31 +4,50 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doxus | Gestión Cloud de Pendientes</title>
-    <!-- Tailwind CSS para diseño responsivo -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-    <!-- Iconografía Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- Configuración e Inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Los valores de __firebase_config y __app_id son inyectados por el entorno
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // ================================================================
+        // 1. CONFIGURACIÓN MANUAL (OBLIGATORIO PARA GITHUB)
+        // Reemplaza los valores de abajo con los de tu consola de Firebase
+        // ================================================================
+        const manualConfig = {
+            apiKey: "AIzaSyB5yY0I1yCDkVCd1LLwAX3StRejmrmNllY",
+  authDomain: "doxus-dashboard.firebaseapp.com",
+  projectId: "doxus-dashboard",
+  storageBucket: "doxus-dashboard.firebasestorage.app",
+  messagingSenderId: "227145089102",
+  appId: "1:227145089102:web:1a2a361b861eb30abb431f",
+  measurementId: "G-879FLV9C3Y"
+        };
+
+        // Lógica para detectar si estamos en GitHub o en el Canvas
+        let firebaseConfig;
+        try {
+            // Si __firebase_config existe (Canvas), úsalo. Si no (GitHub), usa manualConfig.
+            firebaseConfig = (typeof __firebase_config !== 'undefined') ? JSON.parse(__firebase_config) : manualConfig;
+        } catch (e) {
+            firebaseConfig = manualConfig;
+        }
+
+        // Inicialización
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'doxus-tasks-app';
+        const appId = (typeof __app_id !== 'undefined') ? __app_id : 'doxus-cloud-tasks';
 
-        // Exportamos las funciones al objeto global para acceso desde funciones tradicionales
+        // Exportar a la ventana global para que el botón de login pueda verlos
         window.doxusDB = { 
             db, auth, appId, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot,
-            signInWithCustomToken, signInAnonymously 
+            signInAnonymously, signInWithCustomToken 
         };
     </script>
 
@@ -45,212 +64,116 @@
     </script>
 
     <style>
-        * { -webkit-print-color-adjust: exact; }
-        body { font-family: 'Inter', sans-serif; }
+        * { -webkit-print-color-adjust: exact; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; }
         .doxus-shadow { box-shadow: 0 4px 30px rgba(0,0,0,0.02); }
-        
-        /* Estilos para el Logo y Fallback */
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-        .logo-img {
-            height: 40px;
-            width: auto;
-            object-fit: contain;
-        }
-        .logo-fallback {
-            width: 42px;
-            height: 42px;
-            background: #Ffbc06;
-            color: #262a36;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            font-weight: 900;
-            font-size: 24px;
-        }
-
+        .logo-fallback { width: 42px; height: 42px; background: #Ffbc06; color: #262a36; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 900; font-size: 24px; }
         @media print { .no-print { display: none !important; } .print-only { display: block !important; } }
     </style>
 </head>
-<body class="bg-white text-doxus-text overflow-x-hidden">
+<body class="text-doxus-text overflow-x-hidden">
 
-    <!-- Pantalla de Seguridad (Lock Screen) -->
+    <!-- Capa de Seguridad -->
     <div id="lock-screen" class="fixed inset-0 bg-doxus-blue z-[9999] flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="bg-white p-4 rounded-2xl mb-8 shadow-2xl">
-            <div class="logo-container">
-                <img src="logo.png" alt="Doxus Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="bg-white p-5 rounded-3xl mb-8 shadow-2xl">
+            <div class="flex items-center justify-center">
+                <img src="logo.png" alt="Doxus" class="h-10 w-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <div class="logo-fallback" style="display: none;">D</div>
             </div>
         </div>
-        <div class="text-center w-full max-w-xs">
-            <p class="text-white/40 text-[10px] uppercase tracking-[4px] font-bold mb-6">Identidad Verificada Requerida</p>
-            <input type="password" id="pass-input" placeholder="PALABRA CLAVE" class="w-full bg-white/10 border border-white/20 rounded-xl py-4 text-center text-white placeholder-white/30 outline-none focus:border-doxus-yellow">
-            <button onclick="checkPass()" class="w-full bg-doxus-yellow text-doxus-blue font-black py-4 rounded-xl mt-4 transition-transform active:scale-95">ACCEDER AL TABLERO</button>
-            <p id="pass-error" class="text-rose-400 text-xs mt-4 hidden">Contraseña Incorrecta</p>
+        <div class="text-center w-full max-w-xs px-4">
+            <p class="text-white/40 text-[10px] uppercase tracking-[4px] font-bold mb-6">Acceso Restringido Cloud</p>
+            <input type="password" id="pass-input" placeholder="PALABRA CLAVE" class="w-full bg-white/10 border border-white/20 rounded-xl py-4 text-center text-white placeholder-white/30 outline-none focus:border-doxus-yellow transition-all mb-4">
+            <button onclick="checkPass()" class="w-full bg-doxus-yellow text-doxus-blue font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all">Ingresar al Sistema</button>
+            <p id="pass-error" class="text-rose-400 text-[10px] mt-4 hidden font-bold uppercase tracking-widest">Contraseña Incorrecta</p>
         </div>
     </div>
 
-    <!-- Contenedor de la Aplicación -->
+    <!-- Layout Principal -->
     <div id="main-content" class="min-h-screen flex flex-col lg:flex-row opacity-0 transition-opacity duration-500">
-        
-        <!-- Sidebar de Navegación -->
+        <!-- Sidebar -->
         <aside class="no-print w-full lg:w-72 bg-doxus-blue text-white flex-shrink-0 flex flex-col sticky top-0 h-screen border-r-4 border-doxus-yellow">
             <div class="p-8 flex flex-col items-center border-b border-white/10">
-                <div class="bg-white p-3 rounded-xl mb-4">
-                    <div class="logo-container">
-                        <img src="logo.png" alt="Doxus Logo" class="logo-img" style="height: 32px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div class="logo-fallback" style="display: none; width: 32px; height: 32px; font-size: 18px;">D</div>
-                    </div>
-                </div>
+                <div class="bg-white p-3 rounded-xl mb-4 text-doxus-blue font-black text-xl">D</div>
                 <h2 class="font-black text-lg tracking-tight">DOXUS</h2>
-                <p class="text-[9px] text-white/40 font-bold tracking-[3px] uppercase mt-1 text-center">Gestión Estratégica Cloud</p>
+                <p class="text-[9px] text-white/40 font-bold tracking-[3px] uppercase mt-1">Gestión Estratégica</p>
             </div>
-
             <nav class="flex-1 p-6 space-y-2">
-                <button onclick="switchView('dashboard')" class="nav-item w-full flex items-center gap-4 p-3 rounded-xl bg-white/10 text-doxus-yellow font-bold text-sm transition-all">
+                <button onclick="switchView('dashboard')" class="nav-item w-full flex items-center gap-4 p-3 rounded-xl bg-white/10 text-doxus-yellow font-bold text-sm">
                     <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
                 </button>
-                <button onclick="switchView('tasks')" class="nav-item w-full flex items-center gap-4 p-3 rounded-xl text-white/60 font-bold text-sm hover:bg-white/5 transition-all">
-                    <i data-lucide="list-todo" class="w-5 h-5"></i> Pendientes Cloud
+                <button onclick="switchView('tasks')" class="nav-item w-full flex items-center gap-4 p-3 rounded-xl text-white/60 font-bold text-sm">
+                    <i data-lucide="list-todo" class="w-5 h-5"></i> Pendientes
                 </button>
             </nav>
         </aside>
 
-        <!-- Área Principal de Contenido -->
+        <!-- Main Area -->
         <main class="flex-1 flex flex-col bg-doxus-gray">
-            <header class="no-print sticky top-0 z-40 bg-white border-b border-doxus-border px-8 py-4 flex justify-between items-center">
-                <h1 id="view-title" class="text-2xl font-black text-doxus-blue tracking-tighter">Dashboard Operativo</h1>
-                <button onclick="openModal()" class="bg-doxus-blue text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-700 transition-all">Registrar Pendiente</button>
+            <header class="bg-white border-b border-doxus-border px-8 py-4 flex justify-between items-center no-print">
+                <h1 id="view-title" class="text-xl font-black text-doxus-blue tracking-tighter uppercase">Panel de Control</h1>
+                <button onclick="openModal()" class="bg-doxus-blue text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest">Nuevo Registro</button>
             </header>
 
             <div id="content-area" class="p-8">
                 <!-- VISTA: DASHBOARD -->
-                <div id="view-dashboard" class="space-y-8 animate-in fade-in duration-500">
-                    <!-- Indicadores Clave -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
-                        <div class="bg-white p-6 rounded-[1.5rem] doxus-shadow border border-doxus-border">
-                            <span class="text-[10px] font-black text-doxus-light uppercase tracking-wider">Total Cloud</span>
-                            <div id="stat-total" class="text-3xl font-black text-doxus-blue mt-1">0</div>
+                <div id="view-dashboard" class="space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center font-black">
+                        <div class="bg-white p-6 rounded-2xl border border-doxus-border doxus-shadow">
+                            <span class="text-[9px] text-doxus-light uppercase tracking-widest">Total Expedientes</span>
+                            <div id="stat-total" class="text-3xl text-doxus-blue mt-1">0</div>
                         </div>
-                        <div class="bg-white p-6 rounded-[1.5rem] doxus-shadow border border-doxus-border">
-                            <span class="text-[10px] font-black text-doxus-light uppercase tracking-wider">Prioridad Alta</span>
-                            <div id="stat-high" class="text-3xl font-black text-rose-600 mt-1">0</div>
+                        <div class="bg-white p-6 rounded-2xl border border-doxus-border doxus-shadow">
+                            <span class="text-[9px] text-doxus-light uppercase tracking-widest">Prioridad Crítica</span>
+                            <div id="stat-high" class="text-3xl text-rose-600 mt-1">0</div>
                         </div>
-                        <div class="bg-white p-6 rounded-[1.5rem] doxus-shadow border border-doxus-border">
-                            <span class="text-[10px] font-black text-doxus-light uppercase tracking-wider">Finalizados</span>
-                            <div id="stat-done" class="text-3xl font-black text-emerald-600 mt-1">0%</div>
-                        </div>
-                        <div class="bg-white p-6 rounded-[1.5rem] doxus-shadow border border-doxus-border">
-                            <span class="text-[10px] font-black text-doxus-light uppercase tracking-wider">Gmail Sync</span>
-                            <div class="text-xs font-bold text-emerald-500 mt-4 flex items-center justify-center gap-1">
-                                <i data-lucide="cloud-check" class="w-3 h-3"></i> ACTIVO
-                            </div>
+                        <div class="bg-white p-6 rounded-2xl border border-doxus-border doxus-shadow">
+                            <span class="text-[9px] text-doxus-light uppercase tracking-widest">Estado de Sincronización</span>
+                            <div class="text-xs text-emerald-500 mt-2 flex items-center justify-center gap-2"><i data-lucide="cloud-check" class="w-4 h-4"></i> CLOUD ACTIVO</div>
                         </div>
                     </div>
 
-                    <!-- Tabla de Datos -->
-                    <div class="bg-white rounded-[2rem] border border-doxus-border doxus-shadow overflow-hidden">
-                        <div class="p-6 border-b border-doxus-border bg-doxus-gray/30">
-                            <h3 class="font-black text-doxus-blue uppercase text-xs tracking-widest">Registros de Auditoría</h3>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead>
-                                    <tr class="text-[10px] text-doxus-light uppercase font-black">
-                                        <th class="px-6 py-4">Tarea / Pendiente</th>
-                                        <th class="px-6 py-4">Categoría</th>
-                                        <th class="px-6 py-4">Prioridad</th>
-                                        <th class="px-6 py-4 text-right">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="task-list-body"></tbody>
-                            </table>
-                        </div>
+                    <div class="bg-white rounded-3xl border border-doxus-border doxus-shadow overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-doxus-gray/50 border-b border-doxus-border">
+                                <tr class="text-[10px] text-doxus-light uppercase font-black tracking-widest">
+                                    <th class="px-6 py-4">Descripción del Pendiente</th>
+                                    <th class="px-6 py-4">Categoría</th>
+                                    <th class="px-6 py-4">Prioridad</th>
+                                    <th class="px-6 py-4 text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="task-list-body" class="divide-y divide-doxus-border"></tbody>
+                        </table>
                     </div>
                 </div>
 
-                <!-- VISTA: PENDIENTES CLOUD (LISTADO DETALLADO) -->
-                <div id="view-tasks" class="hidden space-y-8 animate-in fade-in duration-500">
-                    <div class="bg-white rounded-[2rem] border border-doxus-border doxus-shadow p-8">
-                        <div class="flex items-center gap-4 mb-6">
-                            <div class="bg-doxus-yellow p-3 rounded-xl text-doxus-blue">
-                                <i data-lucide="list-checks" class="w-6 h-6"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-black text-doxus-blue text-xl tracking-tighter">Control de Expedientes</h3>
-                                <p class="text-doxus-light text-xs font-bold uppercase tracking-widest opacity-60">Sincronización en Tiempo Real</p>
-                            </div>
-                        </div>
-                        <p class="text-doxus-light text-sm leading-relaxed max-w-2xl">
-                            Esta sección permite la gestión profunda de cada expediente sincronizado. Utilice los selectores de estado para actualizar el progreso de la consultoría.
-                        </p>
-                    </div>
-                    
-                    <div class="bg-white rounded-[2rem] border border-doxus-border doxus-shadow overflow-hidden">
-                         <div class="p-6 border-b border-doxus-border bg-doxus-gray/30">
-                            <h3 class="font-black text-doxus-blue uppercase text-xs tracking-widest">Listado Maestro de Operaciones</h3>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead>
-                                    <tr class="text-[10px] text-doxus-light uppercase font-black">
-                                        <th class="px-6 py-4">Identificador</th>
-                                        <th class="px-6 py-4">Clasificación</th>
-                                        <th class="px-6 py-4">Estado</th>
-                                        <th class="px-6 py-4 text-right">Control</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="task-list-detail-body"></tbody>
-                            </table>
-                        </div>
+                <!-- VISTA: LISTADO (Oculta por defecto) -->
+                <div id="view-tasks" class="hidden">
+                    <div class="bg-white p-12 rounded-3xl text-center border border-doxus-border">
+                        <i data-lucide="info" class="w-12 h-12 text-doxus-yellow mx-auto mb-4"></i>
+                        <h2 class="font-black text-doxus-blue text-xl">Módulo de Listado Maestro</h2>
+                        <p class="text-doxus-light text-sm mt-2">Sincronización Cloud habilitada.</p>
                     </div>
                 </div>
             </div>
-
-            <footer class="no-print mt-auto bg-doxus-gray py-12 px-8 text-center border-t border-doxus-border flex flex-col items-center">
-                <div class="bg-doxus-blue p-4 rounded-xl mb-6">
-                    <div class="logo-container">
-                        <img src="logo.png" alt="Doxus Logo" class="logo-img" style="height: 36px; filter: brightness(0) invert(1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div class="logo-fallback" style="display: none;">D</div>
-                    </div>
-                </div>
-                <p class="text-doxus-blue font-bold text-[11px] uppercase tracking-[1px]">© 2026 DOXUS - INFRAESTRUCTURA DE DATOS</p>
-                <p class="text-doxus-blue font-light text-[10px] uppercase tracking-[4px] mt-2">MAXIMILIANO ARÉCHIGA-MORALES</p>
-            </footer>
         </main>
     </div>
 
-    <!-- Modal de Registro -->
+    <!-- Modal Registro -->
     <div id="task-modal" class="fixed inset-0 bg-doxus-blue/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white w-full max-w-lg rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div class="bg-doxus-blue p-8 text-white flex justify-between items-center">
-                <h3 class="font-black text-2xl tracking-tighter uppercase">Nuevo Registro</h3>
-                <button onclick="closeModal()" class="text-white/40 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+        <div class="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl">
+            <div class="bg-doxus-blue p-6 text-white flex justify-between items-center">
+                <h3 class="font-black text-lg uppercase tracking-tighter">Registrar Pendiente</h3>
+                <button onclick="closeModal()" class="text-white/40 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
             <form id="task-form" onsubmit="saveTask(event)" class="p-8 space-y-6">
-                <input type="text" id="task-title" placeholder="Título del Pendiente" required class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-4 outline-none focus:border-doxus-yellow font-bold">
+                <input type="text" id="task-title" placeholder="Título del pendiente..." required class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 outline-none font-bold text-sm focus:border-doxus-yellow">
                 <div class="grid grid-cols-2 gap-4">
-                    <select id="task-category" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-4 outline-none font-bold">
-                        <option>Legal</option>
-                        <option>Personal</option>
-                        <option>Proyecto</option>
-                        <option>Gmail Auto</option>
-                    </select>
-                    <select id="task-priority" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-4 outline-none font-bold">
-                        <option>Baja</option>
-                        <option>Media</option>
-                        <option>Alta</option>
-                    </select>
+                    <select id="task-category" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 text-xs font-bold"><option>Legal</option><option>Operativo</option><option>Personal</option><option>Gmail Sync</option></select>
+                    <select id="task-priority" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 text-xs font-bold"><option>Baja</option><option>Media</option><option>Alta</option></select>
                 </div>
-                <input type="date" id="task-date" required class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-4 outline-none font-bold">
-                <button type="submit" class="w-full bg-doxus-yellow text-doxus-blue font-black py-5 rounded-xl uppercase tracking-widest hover:scale-[1.01] transition-transform">
-                    Sincronizar en Cloud
-                </button>
+                <button type="submit" class="w-full bg-doxus-yellow text-doxus-blue font-black py-4 rounded-xl uppercase tracking-widest text-xs">Confirmar en Nube</button>
             </form>
         </div>
     </div>
@@ -258,44 +181,22 @@
     <script>
         let tasks = [];
 
-        // Función de Navegación entre Vistas
         function switchView(viewId) {
-            const views = ['dashboard', 'tasks'];
-            views.forEach(v => {
-                const el = document.getElementById(`view-${v}`);
-                if (el) el.classList.add('hidden');
-            });
-
-            const targetView = document.getElementById(`view-${viewId}`);
-            if (targetView) targetView.classList.remove('hidden');
-
-            const titles = {
-                'dashboard': 'Dashboard Operativo',
-                'tasks': 'Listado de Pendientes'
-            };
-            document.getElementById('view-title').innerText = titles[viewId] || 'Gestión Cloud';
-
+            ['dashboard', 'tasks'].forEach(v => document.getElementById(`view-${v}`).classList.add('hidden'));
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
             document.querySelectorAll('.nav-item').forEach(btn => {
-                btn.classList.remove('bg-white/10', 'text-doxus-yellow');
-                btn.classList.add('text-white/60');
-                if (btn.getAttribute('onclick').includes(`'${viewId}'`)) {
-                    btn.classList.add('bg-white/10', 'text-doxus-yellow');
-                    btn.classList.remove('text-white/60');
-                }
+                const active = btn.getAttribute('onclick').includes(viewId);
+                btn.classList.toggle('bg-white/10', active);
+                btn.classList.toggle('text-doxus-yellow', active);
             });
-
-            if(viewId === 'tasks') renderTasks();
         }
 
         async function checkPass() {
             if(document.getElementById('pass-input').value === 'Doxus') {
-                const { auth, signInWithCustomToken, signInAnonymously } = window.doxusDB;
+                const dbContext = window.doxusDB;
                 try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+                    const { auth, signInAnonymously } = dbContext;
+                    await signInAnonymously(auth);
                     document.getElementById('lock-screen').style.opacity = '0';
                     setTimeout(() => {
                         document.getElementById('lock-screen').style.display = 'none';
@@ -303,7 +204,8 @@
                         initFirestore();
                     }, 500);
                 } catch (err) {
-                    console.error("Error de Autenticación:", err);
+                    console.error("Firebase Error:", err);
+                    alert("Error Cloud: Verifica tus llaves de Firebase en el código.");
                 }
             } else {
                 document.getElementById('pass-error').classList.remove('hidden');
@@ -317,19 +219,17 @@
             onSnapshot(collRef, (snapshot) => {
                 tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderTasks();
-            }, (err) => console.error("Error en Firestore:", err));
+            });
         }
 
         async function saveTask(e) {
             e.preventDefault();
-            const { db, appId, collection, addDoc, auth } = window.doxusDB;
-            if (!auth.currentUser) return;
+            const { db, appId, collection, addDoc } = window.doxusDB;
             const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'pendientes');
             await addDoc(collRef, {
                 title: document.getElementById('task-title').value,
                 category: document.getElementById('task-category').value,
                 priority: document.getElementById('task-priority').value,
-                date: document.getElementById('task-date').value,
                 completed: false,
                 created: new Date().toISOString()
             });
@@ -338,62 +238,43 @@
         }
 
         async function toggleTask(id) {
-            const { db, appId, doc, updateDoc, auth } = window.doxusDB;
+            const { db, appId, doc, updateDoc } = window.doxusDB;
             const task = tasks.find(t => t.id === id);
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pendientes', id);
-            await updateDoc(docRef, { completed: !task.completed });
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pendientes', id), { completed: !task.completed });
         }
 
         async function deleteTask(id) {
-            const { db, appId, doc, deleteDoc, auth } = window.doxusDB;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pendientes', id);
-            await deleteDoc(docRef);
+            if(!confirm("¿Eliminar este registro permanentemente?")) return;
+            const { db, appId, doc, deleteDoc } = window.doxusDB;
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pendientes', id));
         }
 
         function renderTasks() {
-            const bodies = ['task-list-body', 'task-list-detail-body'];
-            bodies.forEach(bodyId => {
-                const body = document.getElementById(bodyId);
-                if (!body) return;
-                body.innerHTML = tasks.map(task => `
-                    <tr class="border-b border-doxus-border group hover:bg-doxus-gray transition-colors">
-                        <td class="px-6 py-5">
-                            <div class="flex items-center gap-3">
-                                <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask('${task.id}')" class="w-5 h-5 rounded-lg accent-doxus-yellow cursor-pointer">
-                                <span class="font-bold text-sm ${task.completed ? 'line-through text-doxus-light opacity-50' : 'text-doxus-blue'}">${task.title}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-5 text-xs font-bold uppercase opacity-60">${task.category}</td>
-                        <td class="px-6 py-5">
-                            <span class="text-[10px] font-black ${task.priority === 'Alta' ? 'text-rose-600' : 'text-doxus-light'} uppercase tracking-widest">${task.priority}</span>
-                        </td>
-                        <td class="px-6 py-5 text-right">
-                            <button onclick="deleteTask('${task.id}')" class="text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-50 p-2 rounded-lg">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            });
-            const total = tasks.length;
-            const completed = tasks.filter(t => t.completed).length;
-            const statTotal = document.getElementById('stat-total');
-            const statHigh = document.getElementById('stat-high');
-            const statDone = document.getElementById('stat-done');
-            if (statTotal) statTotal.innerText = total;
-            if (statHigh) statHigh.innerText = tasks.filter(t => t.priority === 'Alta').length;
-            if (statDone) statDone.innerText = total > 0 ? Math.round((completed/total)*100)+'%' : '0%';
+            const body = document.getElementById('task-list-body');
+            body.innerHTML = tasks.map(t => `
+                <tr class="hover:bg-doxus-gray/50 transition-colors">
+                    <td class="px-6 py-5">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask('${t.id}')" class="accent-doxus-yellow h-4 w-4">
+                            <span class="text-sm font-bold ${t.completed ? 'line-through opacity-30' : 'text-doxus-blue'}">${t.title}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-5 text-[10px] font-black uppercase opacity-50">${t.category}</td>
+                    <td class="px-6 py-5"><span class="text-[9px] font-black px-3 py-1 rounded-full ${t.priority === 'Alta' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-doxus-light'} uppercase">${t.priority}</span></td>
+                    <td class="px-6 py-5 text-right"><button onclick="deleteTask('${t.id}')" class="text-rose-400 hover:text-rose-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                </tr>
+            `).join('');
+            document.getElementById('stat-total').innerText = tasks.length;
+            document.getElementById('stat-high').innerText = tasks.filter(t => t.priority === 'Alta').length;
             lucide.createIcons();
         }
 
         function openModal() { document.getElementById('task-modal').classList.remove('hidden'); }
         function closeModal() { document.getElementById('task-modal').classList.add('hidden'); }
-        
+
         window.onload = () => {
             lucide.createIcons();
-            document.getElementById('pass-input').addEventListener('keypress', (e) => {
-                if(e.key === 'Enter') checkPass();
-            });
+            document.getElementById('pass-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') checkPass(); });
         };
     </script>
 </body>
