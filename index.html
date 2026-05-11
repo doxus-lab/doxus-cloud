@@ -48,6 +48,32 @@
         * { -webkit-print-color-adjust: exact; }
         body { font-family: 'Inter', sans-serif; }
         .doxus-shadow { box-shadow: 0 4px 30px rgba(0,0,0,0.02); }
+        
+        /* Estilos para el Logo y Fallback */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .logo-img {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
+        }
+        .logo-fallback {
+            width: 42px;
+            height: 42px;
+            background: #Ffbc06;
+            color: #262a36;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: 900;
+            font-size: 24px;
+        }
+
         @media print { .no-print { display: none !important; } .print-only { display: block !important; } }
     </style>
 </head>
@@ -55,9 +81,10 @@
 
     <!-- Pantalla de Seguridad (Lock Screen) -->
     <div id="lock-screen" class="fixed inset-0 bg-doxus-blue z-[9999] flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="bg-white p-1 rounded-xl mb-8">
-            <div class="bg-doxus-blue px-8 py-4 rounded-lg border border-white/10">
-                <div class="text-doxus-yellow font-black text-3xl">D</div>
+        <div class="bg-white p-4 rounded-2xl mb-8 shadow-2xl">
+            <div class="logo-container">
+                <img src="logo.png" alt="Doxus Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-fallback" style="display: none;">D</div>
             </div>
         </div>
         <div class="text-center w-full max-w-xs">
@@ -74,10 +101,13 @@
         <!-- Sidebar de Navegación -->
         <aside class="no-print w-full lg:w-72 bg-doxus-blue text-white flex-shrink-0 flex flex-col sticky top-0 h-screen border-r-4 border-doxus-yellow">
             <div class="p-8 flex flex-col items-center border-b border-white/10">
-                <div class="bg-white p-2 rounded-lg mb-4">
-                    <div class="text-doxus-blue font-black text-2xl">D</div>
+                <div class="bg-white p-3 rounded-xl mb-4">
+                    <div class="logo-container">
+                        <img src="logo.png" alt="Doxus Logo" class="logo-img" style="height: 32px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="logo-fallback" style="display: none; width: 32px; height: 32px; font-size: 18px;">D</div>
+                    </div>
                 </div>
-                <h2 class="font-black text-lg">DOXUS</h2>
+                <h2 class="font-black text-lg tracking-tight">DOXUS</h2>
                 <p class="text-[9px] text-white/40 font-bold tracking-[3px] uppercase mt-1 text-center">Gestión Estratégica Cloud</p>
             </div>
 
@@ -175,16 +205,20 @@
                                         <th class="px-6 py-4 text-right">Control</th>
                                     </tr>
                                 </thead>
-                                <tbody id="task-list-detail-body">
-                                    <!-- Aquí también se puede inyectar la misma tabla o una versión más detallada -->
-                                </tbody>
+                                <tbody id="task-list-detail-body"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <footer class="no-print mt-auto bg-doxus-gray py-8 px-8 text-center border-t border-doxus-border">
+            <footer class="no-print mt-auto bg-doxus-gray py-12 px-8 text-center border-t border-doxus-border flex flex-col items-center">
+                <div class="bg-doxus-blue p-4 rounded-xl mb-6">
+                    <div class="logo-container">
+                        <img src="logo.png" alt="Doxus Logo" class="logo-img" style="height: 36px; filter: brightness(0) invert(1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="logo-fallback" style="display: none;">D</div>
+                    </div>
+                </div>
                 <p class="text-doxus-blue font-bold text-[11px] uppercase tracking-[1px]">© 2026 DOXUS - INFRAESTRUCTURA DE DATOS</p>
                 <p class="text-doxus-blue font-light text-[10px] uppercase tracking-[4px] mt-2">MAXIMILIANO ARÉCHIGA-MORALES</p>
             </footer>
@@ -235,42 +269,33 @@
             const targetView = document.getElementById(`view-${viewId}`);
             if (targetView) targetView.classList.remove('hidden');
 
-            // Actualizar el título del header
             const titles = {
                 'dashboard': 'Dashboard Operativo',
                 'tasks': 'Listado de Pendientes'
             };
             document.getElementById('view-title').innerText = titles[viewId] || 'Gestión Cloud';
 
-            // Actualizar estado visual de los botones de navegación
             document.querySelectorAll('.nav-item').forEach(btn => {
                 btn.classList.remove('bg-white/10', 'text-doxus-yellow');
                 btn.classList.add('text-white/60');
-                
-                // Si el atributo onclick contiene el id de la vista, lo marcamos como activo
                 if (btn.getAttribute('onclick').includes(`'${viewId}'`)) {
                     btn.classList.add('bg-white/10', 'text-doxus-yellow');
                     btn.classList.remove('text-white/60');
                 }
             });
 
-            // Si cambiamos a tasks y ya hay datos, aseguramos que se renderice la tabla (si tuviera su propio body)
             if(viewId === 'tasks') renderTasks();
         }
 
-        // Validación de Acceso
         async function checkPass() {
             if(document.getElementById('pass-input').value === 'Doxus') {
                 const { auth, signInWithCustomToken, signInAnonymously } = window.doxusDB;
-                
                 try {
-                    // Autenticación requerida antes de cualquier consulta Cloud
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
                     } else {
                         await signInAnonymously(auth);
                     }
-
                     document.getElementById('lock-screen').style.opacity = '0';
                     setTimeout(() => {
                         document.getElementById('lock-screen').style.display = 'none';
@@ -285,26 +310,20 @@
             }
         }
 
-        // Inicialización de Escucha en Tiempo Real
         function initFirestore() {
             const { db, appId, collection, onSnapshot, auth } = window.doxusDB;
             if (!auth.currentUser) return;
-
             const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'pendientes');
-            
-            // Suscripción a cambios en la base de datos
             onSnapshot(collRef, (snapshot) => {
                 tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderTasks();
             }, (err) => console.error("Error en Firestore:", err));
         }
 
-        // Operaciones CRUD en Cloud
         async function saveTask(e) {
             e.preventDefault();
             const { db, appId, collection, addDoc, auth } = window.doxusDB;
             if (!auth.currentUser) return;
-
             const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'pendientes');
             await addDoc(collRef, {
                 title: document.getElementById('task-title').value,
@@ -331,14 +350,11 @@
             await deleteDoc(docRef);
         }
 
-        // Renderizado de Interfaz
         function renderTasks() {
             const bodies = ['task-list-body', 'task-list-detail-body'];
-            
             bodies.forEach(bodyId => {
                 const body = document.getElementById(bodyId);
                 if (!body) return;
-                
                 body.innerHTML = tasks.map(task => `
                     <tr class="border-b border-doxus-border group hover:bg-doxus-gray transition-colors">
                         <td class="px-6 py-5">
@@ -359,18 +375,14 @@
                     </tr>
                 `).join('');
             });
-            
             const total = tasks.length;
             const completed = tasks.filter(t => t.completed).length;
-            
             const statTotal = document.getElementById('stat-total');
             const statHigh = document.getElementById('stat-high');
             const statDone = document.getElementById('stat-done');
-
             if (statTotal) statTotal.innerText = total;
             if (statHigh) statHigh.innerText = tasks.filter(t => t.priority === 'Alta').length;
             if (statDone) statDone.innerText = total > 0 ? Math.round((completed/total)*100)+'%' : '0%';
-            
             lucide.createIcons();
         }
 
