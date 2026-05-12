@@ -1,139 +1,392 @@
-/**
- * DOXUS GMAIL & DRIVE AUTOMATION V8.8
- * Integración Total con Dashboard DX-26.
- */
-
-// 1. CONFIGURACIÓN DE IDENTIDAD (Debe coincidir con index.html)
-const PROJECT_ID = "doxus-dashboard"; 
-const APP_ID = "doxus-cloud-tasks"; 
-
-// 2. LISTA BLANCA (WHITELIST): PEGA AQUÍ LOS CORREOS AUTORIZADOS
-// Solo se procesarán correos de estas direcciones.
-const LISTA_BLANCA = [
-  "tu_correo_personal@gmail.com",
-  "socio_estratega@doxus.mx",
-  "contacto@cliente_importante.com"
-];
-
-const MAIN_FOLDER_NAME = "DOXUS - ENTRADAS GMAIL";
-
-/**
- * Función principal: Escanea correos desde Enero 2026
- */
-function scanGmail() {
-  // Filtro: Desde 1 de enero de 2026 y con adjuntos específicos
-  const query = "after:2026/01/01 (filename:pdf OR filename:xlsx OR filename:docx)";
-  const threads = GmailApp.search(query);
-  
-  if (threads.length === 0) {
-    Logger.log("No se encontraron correos nuevos para procesar.");
-    return;
-  }
-
-  const mainFolder = getOrCreateFolder(MAIN_FOLDER_NAME);
-
-  threads.forEach(thread => {
-    const messages = thread.getMessages();
-    const lastMessage = messages[messages.length - 1];
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doxus | Intelligence Cloud Dashboard</title>
+    <!-- Tailwind CSS y Fuentes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     
-    // Solo procesar si el mensaje no ha sido leído (o marcar como no leído para re-escanear)
-    if (lastMessage.isUnread()) {
-      const fromFull = lastMessage.getFrom();
-      const fromEmail = fromFull.match(/<([^>]+)>/)?.[1] || fromFull;
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-      // VALIDACIÓN DE LISTA BLANCA
-      if (LISTA_BLANCA.length > 0 && !LISTA_BLANCA.includes(fromEmail.toLowerCase().trim())) {
-        Logger.log("Saltando remitente no autorizado: " + fromEmail);
-        return; 
-      }
+        // CONFIGURACIÓN DE FIREBASE
+        const manualConfig = {
+            apiKey: "AIzaSyB5yY0I1yCDkVCd1LLwAX3StRejmrmNllY",
+            authDomain: "doxus-dashboard.firebaseapp.com",
+            projectId: "doxus-dashboard",
+            storageBucket: "doxus-dashboard.firebasestorage.app",
+            messagingSenderId: "227145089102",
+            appId: "1:227145089102:web:1a2a361b861eb30abb431f"
+        };
 
-      const subject = lastMessage.getSubject();
-      const body = lastMessage.getPlainBody(); 
-      const attachments = lastMessage.getAttachments();
-      const dateStr = Utilities.formatDate(new Date(), "GMT-6", "yyyy-MM-dd");
-      
-      // Creamos el resumen del texto del correo para el Dashboard
-      const textSummary = body.length > 180 ? body.substring(0, 180).replace(/\n/g, " ") + "..." : body.replace(/\n/g, " ");
+        let firebaseConfig;
+        try {
+            firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) ? JSON.parse(__firebase_config) : manualConfig;
+        } catch (e) {
+            firebaseConfig = manualConfig;
+        }
 
-      if (attachments.length > 0) {
-        // Carpeta física en Drive
-        const subFolder = mainFolder.createFolder(`${dateStr} | ${subject}`);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'doxus-cloud-tasks';
 
-        attachments.forEach(file => {
-          const fileName = file.getName();
-          subFolder.createFile(file);
-          
-          let category = "Validar"; 
-          let priority = "Baja";
-          const context = (subject + " " + body).toLowerCase();
+        // Exponer al objeto global para funciones tradicionales
+        window.doxusDB = { 
+            db, auth, appId, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, 
+            signInAnonymously, signInWithCustomToken, onAuthStateChanged 
+        };
+    </script>
 
-          // CLASIFICACIÓN LÓGICA SOLICITADA
-          if (context.includes("contrato")) {
-            category = "Contrato";
-            priority = "Alta";
-          } else if (context.includes("fianza")) {
-            category = "Revisión de Fianzas";
-            priority = "Media";
-          } else if (context.includes("validar") || context.includes("revisar")) {
-            category = "Validar";
-            priority = "Alta";
-          }
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        doxus: { blue: '#262a36', yellow: '#Ffbc06', gray: '#f8f9fa', border: '#e9ecef', text: '#1f2937', light: '#64748b' }
+                    }
+                }
+            }
+        }
+    </script>
 
-          // GENERACIÓN DE FOLIO INSTITUCIONAL (DX-26-XXXX)
-          const folio = "DX-26-" + Math.floor(1000 + Math.random() * 9000);
-          const taskTitle = `[📁] ${fileName}`;
-          
-          // ESTATUS INICIAL
-          const initialStatus = "Sin Atender";
+    <style>
+        * { -webkit-print-color-adjust: exact; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; }
+        
+        .logo-frame { 
+            background-color: #262a36; 
+            padding: 12px 24px; 
+            border-radius: 14px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .logo-render { height: 40px; width: auto; object-fit: contain; }
+        .doxus-shadow { box-shadow: 0 4px 30px rgba(0,0,0,0.02); }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="text-doxus-text overflow-x-hidden">
 
-          // Sincronización con Firebase
-          registerInCloud(folio, taskTitle, textSummary, category, priority, initialStatus);
-        });
+    <!-- Pantalla de Seguridad con Feedback de Estado -->
+    <div id="lock-screen" class="fixed inset-0 bg-doxus-blue z-[9999] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="logo-frame mb-8 scale-125">
+            <img src="logo.png" alt="Doxus Logo" class="logo-render" onerror="this.src='https://placehold.co/100x40/262a36/Ffbc06?text=DOXUS'">
+        </div>
+        <div class="text-center w-full max-w-xs px-4">
+            <p id="lock-instruction" class="text-white/40 text-[10px] uppercase tracking-[4px] font-bold mb-6">Identidad Verificada Requerida</p>
+            <input type="password" id="pass-input" placeholder="PALABRA CLAVE" class="w-full bg-white/10 border border-white/20 rounded-xl py-4 text-center text-white placeholder-white/30 outline-none focus:border-doxus-yellow transition-all mb-4">
+            <button id="login-btn" onclick="checkPass()" class="w-full bg-doxus-yellow text-doxus-blue font-black py-4 rounded-xl uppercase tracking-widest text-xs shadow-lg active:scale-95 transition-all">Acceder al Sistema</button>
+            <p id="pass-error" class="text-rose-400 text-[10px] mt-4 hidden font-bold uppercase tracking-widest text-center"></p>
+        </div>
+    </div>
 
-        // Marcar como leído para evitar duplicados en el Dashboard
-        lastMessage.markRead();
-        Logger.log("Expediente Sincronizado: " + subject);
-      }
-    }
-  });
-}
+    <!-- Layout Principal -->
+    <div id="main-content" class="min-h-screen flex flex-col lg:flex-row opacity-0 transition-opacity duration-500">
+        <!-- Sidebar -->
+        <aside class="no-print w-full lg:w-72 bg-doxus-blue text-white flex-shrink-0 flex flex-col sticky top-0 h-screen border-r-4 border-doxus-yellow">
+            <div class="p-8 flex flex-col items-center border-b border-white/10">
+                <div class="logo-frame" style="padding: 10px 18px;">
+                    <img src="logo.png" alt="Doxus Logo" style="height: 28px;" onerror="this.src='https://placehold.co/100x40/262a36/Ffbc06?text=DOXUS'">
+                </div>
+                <p class="text-[9px] text-white/40 font-bold tracking-[3px] uppercase text-center mt-6">Intelligence Cloud</p>
+            </div>
+            <nav class="flex-1 p-6 space-y-2">
+                <button onclick="switchView('dashboard')" class="nav-item w-full flex items-center gap-4 p-3 rounded-xl bg-white/10 text-doxus-yellow font-bold text-sm">🏠 Dashboard</button>
+                <button onclick="switchView('tasks')" class="nav-item w-full flex items-center gap-4 p-3 rounded-xl text-white/60 font-bold text-sm">📁 Pendientes</button>
+            </nav>
+            <div class="p-6 border-t border-white/10 text-center">
+                <p class="text-[9px] text-white/30 font-black uppercase tracking-widest leading-loose text-center">M. Aréchiga-Morales<br>Auditoría Estratégica</p>
+            </div>
+        </aside>
 
-function getOrCreateFolder(name) {
-  const folders = DriveApp.getFoldersByName(name);
-  return folders.hasNext() ? folders.next() : DriveApp.createFolder(name);
-}
+        <!-- Main Area -->
+        <main class="flex-1 flex flex-col bg-doxus-gray overflow-y-auto">
+            <header class="bg-white border-b border-doxus-border px-8 py-4 flex flex-wrap justify-between items-center no-print sticky top-0 z-40">
+                <h1 id="view-title" class="text-xl font-black text-doxus-blue tracking-tighter uppercase font-black">Panel de Control</h1>
+                <div class="flex gap-3">
+                    <button onclick="printFilteredReports()" class="bg-doxus-gray border border-doxus-border text-doxus-blue px-6 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-white transition-all">🖨️ PDF</button>
+                    <button onclick="openModal()" class="bg-doxus-blue text-white px-6 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest">➕ Manual</button>
+                </div>
+            </header>
 
-/**
- * Registra el documento en la base de datos de Firebase
- */
-function registerInCloud(folio, title, summary, category, priority, status) {
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/artifacts/${APP_ID}/public/data/pendientes`;
-  
-  const payload = {
-    fields: {
-      folio: { stringValue: folio },
-      title: { stringValue: title },
-      summary: { stringValue: summary },
-      category: { stringValue: category },
-      priority: { stringValue: priority },
-      status: { stringValue: status }, 
-      created: { stringValue: new Date().toISOString() }
-    }
-  };
-  
-  const options = {
-    method: "post",
-    contentType: "application/json",
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
-  
-  try {
-    const response = UrlFetchApp.fetch(url, options);
-    if (response.getResponseCode() !== 200) {
-      Logger.log("Error Firebase: " + response.getContentText());
-    }
-  } catch (e) {
-    Logger.log("Falla de conexión: " + e.toString());
-  }
-}
+            <div id="content-area" class="p-8">
+                <!-- SECCIÓN DASHBOARD -->
+                <div id="view-dashboard" class="space-y-8 animate-in fade-in duration-500">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="bg-white p-6 rounded-2xl border border-doxus-border shadow-sm text-center">
+                            <span class="text-[9px] text-doxus-light uppercase tracking-widest font-black">Totales</span>
+                            <div id="stat-total" class="text-4xl text-doxus-blue font-black mt-1">0</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-doxus-border shadow-sm text-center border-l-4 border-l-rose-500">
+                            <span class="text-[9px] text-doxus-light uppercase tracking-widest font-black">Prioridad Alta</span>
+                            <div id="stat-high" class="text-4xl text-rose-600 font-black mt-1">0</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-doxus-border shadow-sm text-center">
+                            <span class="text-[9px] text-doxus-light uppercase tracking-widest font-black">En Trámite</span>
+                            <div id="stat-process" class="text-4xl text-amber-600 font-black mt-1">0</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-doxus-border shadow-sm text-center">
+                            <span class="text-[9px] text-doxus-light uppercase tracking-widest font-black">Sincronización</span>
+                            <div id="sync-status" class="text-xs text-emerald-500 mt-4 flex items-center justify-center font-bold">☁️ ONLINE</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-doxus-border shadow-sm overflow-hidden">
+                        <div class="p-6 border-b border-doxus-border flex justify-between items-center bg-doxus-gray/30">
+                            <h3 class="font-black text-doxus-blue uppercase text-xs tracking-widest font-black">Auditoría en Tiempo Real</h3>
+                            <input type="text" id="search-input" oninput="renderTasks()" placeholder="Buscar folio o título..." class="bg-white border border-doxus-border rounded-xl px-4 py-2 text-xs outline-none focus:border-doxus-yellow w-64 font-bold">
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-doxus-gray/50 text-[10px] text-doxus-light uppercase font-black tracking-widest border-b border-doxus-border">
+                                    <tr>
+                                        <th class="px-6 py-4">Folio</th>
+                                        <th class="px-6 py-4">Expediente / Acción</th>
+                                        <th class="px-6 py-4">Clasificación</th>
+                                        <th class="px-6 py-4">Prioridad</th>
+                                        <th class="px-6 py-4">Estatus</th>
+                                        <th class="px-6 py-4 text-right">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="task-list-body" class="divide-y divide-doxus-border"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN PENDIENTES -->
+                <div id="view-tasks" class="hidden">
+                     <div class="bg-white p-12 rounded-3xl text-center border border-doxus-border shadow-sm max-w-4xl mx-auto mt-10">
+                        <h2 class="text-3xl font-black text-doxus-blue uppercase tracking-tighter mb-4">Apartado de Pendientes</h2>
+                        <p class="text-doxus-light text-sm">Este módulo es el centro de validación para entradas automáticas. Clasifique y dé seguimiento a cada folio DX-26.</p>
+                     </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Registro Manual -->
+    <div id="task-modal" class="fixed inset-0 bg-doxus-blue/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl">
+            <div class="bg-doxus-blue p-6 text-white border-b-4 border-doxus-yellow font-black">
+                <h3 class="font-black text-lg uppercase">Nuevo Registro DX-26</h3>
+            </div>
+            <form id="task-form" onsubmit="saveTask(event)" class="p-8 space-y-4">
+                <input type="text" id="task-title" placeholder="Título del archivo" required class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 outline-none font-bold">
+                <textarea id="task-summary" placeholder="Resumen del contenido..." required class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 outline-none h-20 text-sm"></textarea>
+                <div class="grid grid-cols-2 gap-4">
+                    <select id="task-category" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none">
+                        <option>Contrato</option>
+                        <option>Revisión de Fianzas</option>
+                        <option>Validar</option>
+                    </select>
+                    <select id="task-priority" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none">
+                        <option>Alta</option><option>Media</option><option>Baja</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-doxus-yellow text-doxus-blue font-black py-4 rounded-xl uppercase tracking-widest text-xs shadow-lg active:scale-95 transition-all">Sincronizar Folio</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="print-container" class="hidden print-only"></div>
+
+    <script>
+        let tasks = [];
+        let filteredTasks = [];
+
+        function switchView(viewId) {
+            ['dashboard', 'tasks'].forEach(v => document.getElementById(`view-${v}`).classList.add('hidden'));
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                const active = btn.getAttribute('onclick').includes(viewId);
+                btn.classList.toggle('bg-white/10', active);
+                btn.classList.toggle('text-doxus-yellow', active);
+                btn.classList.toggle('text-white/60', !active);
+            });
+        }
+
+        async function checkPass() {
+            const passInput = document.getElementById('pass-input');
+            const loginBtn = document.getElementById('login-btn');
+            const errorMsg = document.getElementById('pass-error');
+
+            if(passInput.value === 'Doxus') {
+                const dbCtx = window.doxusDB;
+                loginBtn.innerText = "AUTENTICANDO...";
+                loginBtn.disabled = true;
+
+                try {
+                    // IMPLEMENTACIÓN REGLA 3: AUTH ANTES DE CONSULTA
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await dbCtx.signInWithCustomToken(dbCtx.auth, __initial_auth_token);
+                    } else {
+                        await dbCtx.signInAnonymously(dbCtx.auth);
+                    }
+
+                    dbCtx.onAuthStateChanged(dbCtx.auth, (user) => {
+                        if (user) {
+                            loginBtn.innerText = "CONECTANDO NUBE...";
+                            document.getElementById('lock-screen').style.opacity = '0';
+                            setTimeout(() => {
+                                document.getElementById('lock-screen').style.display = 'none';
+                                document.getElementById('main-content').classList.replace('opacity-0', 'opacity-100');
+                                initFirestore();
+                            }, 500);
+                        }
+                    });
+                } catch (err) {
+                    console.error("Auth Error:", err);
+                    errorMsg.innerText = "ERROR DE CONEXIÓN FIREBASE";
+                    errorMsg.classList.remove('hidden');
+                    loginBtn.innerText = "REINTENTAR ACCESO";
+                    loginBtn.disabled = false;
+                }
+            } else {
+                errorMsg.innerText = "CONTRASEÑA INCORRECTA";
+                errorMsg.classList.remove('hidden');
+                setTimeout(() => errorMsg.classList.add('hidden'), 2000);
+            }
+        }
+
+        function initFirestore() {
+            const { db, appId, collection, onSnapshot, auth } = window.doxusDB;
+            if (!auth.currentUser) return; // Guard Rule 3
+
+            const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'pendientes');
+            
+            onSnapshot(collRef, (snapshot) => {
+                tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderTasks();
+            }, (error) => {
+                console.error("Firestore Error:", error);
+                const syncBadge = document.getElementById('sync-status');
+                if (syncBadge) { syncBadge.innerText = "⚠️ ERROR PERMISOS"; syncBadge.className = "text-xs text-rose-500 font-bold mt-4"; }
+            });
+        }
+
+        async function saveTask(e) {
+            e.preventDefault();
+            const { db, appId, collection, addDoc, auth } = window.doxusDB;
+            if (!auth.currentUser) return;
+            const folio = "DX-26-" + Math.floor(1000 + Math.random() * 9000);
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'pendientes'), {
+                    folio: folio,
+                    title: document.getElementById('task-title').value,
+                    summary: document.getElementById('task-summary').value,
+                    category: document.getElementById('task-category').value,
+                    priority: document.getElementById('task-priority').value,
+                    status: "Sin Atender",
+                    created: new Date().toISOString()
+                });
+                document.getElementById('task-modal').classList.add('hidden');
+                e.target.reset();
+            } catch (err) { console.error("Save Error:", err); }
+        }
+
+        async function updateStatus(id, newStatus) {
+            const { db, appId, doc, updateDoc, auth } = window.doxusDB;
+            if (!auth.currentUser) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pendientes', id);
+            await updateDoc(docRef, { status: newStatus });
+        }
+
+        async function deleteTask(id) {
+            const { db, appId, doc, deleteDoc, auth } = window.doxusDB;
+            if (!auth.currentUser) return;
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pendientes', id));
+        }
+
+        function renderTasks() {
+            const body = document.getElementById('task-list-body');
+            const search = document.getElementById('search-input').value.toLowerCase();
+            
+            filteredTasks = tasks.filter(t => 
+                t.title?.toLowerCase().includes(search) || 
+                t.folio?.toLowerCase().includes(search) ||
+                t.summary?.toLowerCase().includes(search)
+            );
+
+            body.innerHTML = filteredTasks.map(t => {
+                const searchLink = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(t.title?.replace('[📁]', '').trim())}`;
+                let catBadge = "bg-slate-100 text-slate-600";
+                if(t.category === "Contrato") catBadge = "bg-emerald-100 text-emerald-700";
+                if(t.category === "Revisión de Fianzas") catBadge = "bg-blue-100 text-blue-700";
+                if(t.category === "Validar") catBadge = "bg-amber-100 text-amber-700";
+
+                return `
+                    <tr class="group hover:bg-doxus-gray transition-colors">
+                        <td class="px-6 py-5 font-black text-[10px] text-doxus-light tracking-tighter uppercase">${t.folio || 'DX-26-XXXX'}</td>
+                        <td class="px-6 py-5">
+                            <div class="text-sm font-black text-doxus-blue uppercase tracking-tighter">${t.title}</div>
+                            <div class="text-[10px] text-doxus-light font-bold mt-0.5 leading-tight italic line-clamp-1">"${t.summary || 'Sin resumen.'}"</div>
+                        </td>
+                        <td class="px-6 py-5"><span class="text-[9px] font-black uppercase px-2 py-1 rounded-md ${catBadge} tracking-wider font-black">${t.category}</span></td>
+                        <td class="px-6 py-5"><span class="text-[9px] font-black px-3 py-1 rounded-full ${t.priority === 'Alta' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-doxus-light'} uppercase font-black">${t.priority}</span></td>
+                        <td class="px-6 py-5">
+                            <select onchange="updateStatus('${t.id}', this.value)" class="text-[9px] font-black uppercase bg-transparent outline-none cursor-pointer border-b border-dotted border-doxus-light pb-1 hover:border-doxus-yellow transition-colors font-black">
+                                <option value="Sin Atender" ${t.status === 'Sin Atender' ? 'selected' : ''}>Sin Atender</option>
+                                <option value="Pendiente" ${t.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                                <option value="En Trámite" ${t.status === 'En Trámite' ? 'selected' : ''}>En Trámite</option>
+                                <option value="Completado" ${t.status === 'Completado' ? 'selected' : ''}>Completado</option>
+                            </select>
+                        </td>
+                        <td class="px-6 py-5 text-right flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href="${searchLink}" target="_blank" class="text-doxus-light hover:text-doxus-blue text-xs">✉️</a>
+                            <button onclick="deleteTask('${t.id}')" class="text-rose-400 hover:text-rose-600 transition-colors">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            document.getElementById('stat-total').innerText = tasks.length;
+            document.getElementById('stat-high').innerText = tasks.filter(t => t.priority === 'Alta' && t.status !== 'Completado').length;
+            document.getElementById('stat-process').innerText = tasks.filter(t => t.status === 'En Trámite').length;
+        }
+
+        function printFilteredReports() {
+            const printArea = document.getElementById('print-container');
+            if (filteredTasks.length === 0) return;
+            printArea.innerHTML = filteredTasks.map(t => `
+                <div class="page-break p-12 text-doxus-blue">
+                    <div class="flex justify-between border-b-4 border-doxus-yellow pb-6 mb-8">
+                        <div class="logo-frame" style="padding: 8px 16px;"><img src="logo.png" style="height: 25px;" onerror="this.parentElement.innerText='DOXUS'"></div>
+                        <div class="text-right text-[10px] font-black uppercase text-doxus-light">Folio: ${t.folio}</div>
+                    </div>
+                    <h2 class="text-3xl font-black uppercase mb-4">${t.title}</h2>
+                    <div class="bg-doxus-yellow/10 p-6 rounded-2xl mb-8 border-l-4 border-doxus-yellow">
+                        <p class="text-[10px] font-black uppercase text-doxus-blue mb-2">Resumen del Expediente:</p>
+                        <p class="text-sm italic font-medium leading-relaxed">"${t.summary || 'Sin descripción.'}"</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-8 text-[10px] font-black uppercase">
+                        <div class="bg-doxus-gray p-4 rounded-xl border border-doxus-border">Estatus: ${t.status} | Categoría: ${t.category}</div>
+                        <div class="bg-doxus-gray p-4 rounded-xl border border-doxus-border">Prioridad: ${t.priority} | Fecha: ${new Date(t.created).toLocaleDateString()}</div>
+                    </div>
+                </div>
+            `).join('');
+            window.print();
+        }
+
+        function openModal() { document.getElementById('task-modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('task-modal').classList.add('hidden'); }
+        window.onload = () => { document.getElementById('pass-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') checkPass(); }); };
+    </script>
+</body>
+</html>
