@@ -16,7 +16,6 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONFIGURACIÓN CLOUD VERIFICADA
         const manualConfig = {
             apiKey: "AIzaSyB5yY0I1yCDkVCd1LLwAX3StRejmrmNllY",
             authDomain: "doxus-dashboard.firebaseapp.com",
@@ -30,11 +29,8 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        // Regla 1: Usar ID consistente para rutas de Firebase
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'doxus-cloud-tasks';
 
-        // Exportación robusta al objeto global
         window.doxusDB = { 
             db, auth, appId, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, 
             signInAnonymously, signInWithCustomToken, onAuthStateChanged
@@ -56,25 +52,41 @@
     <style>
         * { -webkit-print-color-adjust: exact; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background-color: #ffffff; }
-        .logo-box { background-color: #262a36; padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; }
-        .logo-symbol { background-color: #Ffbc06; color: #262a36; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 900; font-size: 20px; }
-        .doxus-shadow { box-shadow: 0 4px 30px rgba(0,0,0,0.02); }
+        
+        /* Contenedor del Logo sobre fondo 262A36 */
+        .logo-box-cloud { 
+            background-color: #262a36; 
+            padding: 14px 28px; 
+            border-radius: 16px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .logo-img-cloud {
+            height: 42px;
+            width: auto;
+            object-fit: contain;
+        }
         
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             .page-break { page-break-before: always; }
-            body { background: white; }
         }
     </style>
 </head>
 <body class="text-doxus-text overflow-x-hidden">
 
+    <!-- Application Structure Plan: SPA de alta fidelidad para gestión de auditoría. Se utiliza una arquitectura de flujo lineal: 1. Autenticación, 2. Dashboard de KPIs, 3. Listado Maestro con integración de resúmenes de correo y clasificación inteligente (Contratos, Fianzas, Validar). El diseño utiliza el branding institucional de Doxus con logo sobre fondo #262a36 para máxima elegancia y autoridad visual. -->
+    <!-- Visualization & Content Choices: Se utiliza una tabla dinámica para presentar los expedientes, destacando el resumen del cuerpo del correo como subtítulo. Se integran badges de colores para las categorías solicitadas y prioridades dinámicas para facilitar la lectura rápida del auditor. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. Se utiliza logo.png del repositorio. -->
+
     <!-- Bloqueo de Seguridad -->
     <div id="lock-screen" class="fixed inset-0 bg-doxus-blue z-[9999] flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="logo-box mb-8 scale-125 shadow-2xl">
-            <div class="logo-symbol mr-3">D</div>
-            <span class="text-white font-black tracking-widest uppercase">Doxus Dashboard</span>
+        <div class="logo-box-cloud mb-10 scale-125">
+            <img src="logo.png" alt="Doxus Logo" class="logo-img-cloud">
         </div>
         <div class="text-center w-full max-w-xs px-4">
             <p class="text-white/40 text-[10px] uppercase tracking-[4px] font-bold mb-6">Identidad Verificada Requerida</p>
@@ -84,42 +96,41 @@
         </div>
     </div>
 
-    <!-- Contenido Principal -->
+    <!-- Layout Principal -->
     <div id="main-content" class="min-h-screen flex flex-col lg:flex-row opacity-0 transition-opacity duration-500">
         <!-- Sidebar -->
         <aside class="no-print w-full lg:w-72 bg-doxus-blue text-white flex-shrink-0 flex flex-col sticky top-0 h-screen border-r-4 border-doxus-yellow">
             <div class="p-8 flex flex-col items-center border-b border-white/10">
-                <div class="logo-box mb-4">
-                    <div class="logo-symbol mr-2">D</div>
-                    <span class="text-white font-black text-sm tracking-widest uppercase">Doxus</span>
+                <div class="logo-box-cloud mb-2" style="padding: 10px 20px;">
+                    <img src="logo.png" alt="Doxus Logo" class="logo-img-cloud" style="height: 30px;">
                 </div>
-                <p class="text-[9px] text-white/40 font-bold tracking-[3px] uppercase text-center mt-2">Intelligence Cloud</p>
+                <p class="text-[9px] text-white/40 font-bold tracking-[3px] uppercase text-center mt-6">Intelligence Cloud</p>
             </div>
             <nav class="flex-1 p-6 space-y-2">
                 <button onclick="switchView('dashboard')" class="nav-item w-full flex items-center gap-4 p-3 rounded-xl bg-white/10 text-doxus-yellow font-bold text-sm transition-all">
                     🏠 Dashboard
                 </button>
-                <button onclick="switchView('tasks')" class="nav-item w-full flex items-center gap-4 p-3 rounded-xl text-white/60 font-bold text-sm transition-all">
+                <button onclick="switchView('tasks')" class="nav-item w-full flex items-center gap-4 p-3 rounded-xl text-white/60 font-bold text-sm transition-all hover:bg-white/5">
                     📁 Pendientes
                 </button>
             </nav>
             <div class="p-6 border-t border-white/10 text-center">
-                <p class="text-[9px] text-white/30 font-black uppercase tracking-widest">M. Aréchiga-Morales</p>
+                <p class="text-[9px] text-white/30 font-black uppercase tracking-widest leading-loose">M. Aréchiga-Morales<br>Auditoría Estratégica</p>
             </div>
         </aside>
 
         <!-- Main Area -->
         <main class="flex-1 flex flex-col bg-doxus-gray overflow-y-auto">
             <header class="bg-white border-b border-doxus-border px-8 py-4 flex flex-wrap justify-between items-center no-print">
-                <h1 id="view-title" class="text-xl font-black text-doxus-blue tracking-tighter uppercase">Panel de Control</h1>
+                <h1 id="view-title" class="text-xl font-black text-doxus-blue tracking-tighter uppercase font-black">Panel de Control Cloud</h1>
                 <div class="flex gap-3">
-                    <button onclick="printFilteredReports()" class="bg-doxus-gray border border-doxus-border text-doxus-blue px-6 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-white transition-all">🖨️ Reporte de Filtrados</button>
+                    <button onclick="printFilteredReports()" class="bg-white border border-doxus-border text-doxus-blue px-6 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-doxus-gray transition-all">🖨️ Generar Reporte PDF</button>
                     <button onclick="openModal()" class="bg-doxus-blue text-white px-6 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all">➕ Registro Manual</button>
                 </div>
             </header>
 
             <div id="content-area" class="p-8">
-                <!-- SECCIÓN DASHBOARD -->
+                <!-- VISTA DASHBOARD -->
                 <div id="view-dashboard" class="space-y-8 animate-in fade-in duration-500">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-white p-6 rounded-2xl border border-doxus-border shadow-sm text-center">
@@ -131,17 +142,17 @@
                             <div id="stat-high" class="text-4xl text-rose-600 font-black mt-1">0</div>
                         </div>
                         <div class="bg-white p-6 rounded-2xl border border-doxus-border shadow-sm text-center">
-                            <span class="text-[9px] text-doxus-light uppercase tracking-widest font-black">Estatus Cloud</span>
+                            <span class="text-[9px] text-doxus-light uppercase tracking-widest font-black">Estado Nube</span>
                             <div id="sync-status" class="text-xs text-emerald-500 mt-4 flex items-center justify-center font-bold">☁️ SINCRONIZADO</div>
                         </div>
                     </div>
 
-                    <!-- Apartado: Explicación Pendientes -->
+                    <!-- Explicación de Pendientes -->
                     <div class="bg-doxus-blue text-white p-8 rounded-3xl relative overflow-hidden shadow-xl">
                         <div class="relative z-10 max-w-2xl">
-                            <h2 class="text-2xl font-black tracking-tighter uppercase mb-4 text-doxus-yellow">¿Qué es el apartado Pendientes?</h2>
+                            <h2 class="text-2xl font-black tracking-tighter uppercase mb-4 text-doxus-yellow">Centro de Auditoría Doxus</h2>
                             <p class="text-sm text-white/70 leading-relaxed">
-                                El apartado **Pendientes** es el núcleo de gestión documental del ecosistema Doxus. Sirve para procesar los registros automáticos que el robot sincroniza desde tu Gmail y Drive. Aquí, cada archivo se convierte en un ítem accionable que permite la auditoría y clasificación automática de riesgos.
+                                Este sistema automatiza la entrada de expedientes desde Gmail y Drive. La sección de **Pendientes** clasifica inteligentemente el contenido del correo para que usted pueda identificar rápidamente **Contratos**, **Fianzas** o elementos a **Validar**.
                             </p>
                         </div>
                         <div class="absolute -bottom-10 -right-10 text-white/5 font-black text-9xl">DOXUS</div>
@@ -149,19 +160,17 @@
 
                     <div class="bg-white rounded-3xl border border-doxus-border shadow-sm overflow-hidden">
                         <div class="p-6 border-b border-doxus-border flex justify-between items-center bg-doxus-gray/30">
-                            <h3 class="font-black text-doxus-blue uppercase text-xs tracking-widest">Actividad Reciente y Filtros</h3>
-                            <div class="flex gap-4">
-                                <input type="text" id="search-input" oninput="renderTasks()" placeholder="Buscar expediente..." class="bg-white border border-doxus-border rounded-xl px-4 py-2 text-xs outline-none focus:border-doxus-yellow">
-                            </div>
+                            <h3 class="font-black text-doxus-blue uppercase text-xs tracking-widest font-black">Sincronización en Tiempo Real</h3>
+                            <input type="text" id="search-input" oninput="renderTasks()" placeholder="Buscar por título o contenido..." class="bg-white border border-doxus-border rounded-xl px-4 py-2 text-xs outline-none focus:border-doxus-yellow w-64 font-bold">
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left">
                                 <thead class="bg-doxus-gray/50 text-[10px] text-doxus-light uppercase font-black tracking-widest border-b border-doxus-border">
                                     <tr>
-                                        <th class="px-6 py-4">Expediente / Tarea a desarrollar</th>
-                                        <th class="px-6 py-4">Clasificación</th>
+                                        <th class="px-6 py-4">Expediente / Resumen del Correo</th>
+                                        <th class="px-6 py-4">Categoría</th>
                                         <th class="px-6 py-4">Prioridad</th>
-                                        <th class="px-6 py-4 text-right">Acciones</th>
+                                        <th class="px-6 py-4 text-right">Control</th>
                                     </tr>
                                 </thead>
                                 <tbody id="task-list-body" class="divide-y divide-doxus-border"></tbody>
@@ -170,85 +179,66 @@
                     </div>
                 </div>
 
-                <!-- SECCIÓN PENDIENTES (MAESTRO) -->
-                <div id="view-tasks" class="hidden animate-in fade-in duration-500">
+                <!-- SECCIÓN LISTADO MAESTRO -->
+                <div id="view-tasks" class="hidden">
                     <div class="bg-white p-12 rounded-3xl text-center border border-doxus-border shadow-sm">
-                        <div class="text-6xl mb-4">🗂️</div>
-                        <h2 class="text-3xl font-black text-doxus-blue uppercase tracking-tighter">Listado Maestro de Auditoría</h2>
-                        <p class="text-doxus-light text-sm mt-4 max-w-lg mx-auto">Sincronización en tiempo real activa. Gestione aquí la integridad documental de su despacho.</p>
+                        <div class="text-6xl mb-6">💼</div>
+                        <h2 class="text-3xl font-black text-doxus-blue uppercase tracking-tighter">Archivo Maestro Cloud</h2>
+                        <p class="mt-4 text-doxus-light text-sm max-w-lg mx-auto">Visualización completa de los activos digitales procesados por la infraestructura Doxus.</p>
                     </div>
                 </div>
             </div>
-
-            <!-- Footer -->
-            <footer class="no-print mt-auto bg-doxus-gray py-12 px-8 flex flex-col items-center border-t border-doxus-border">
-                <div class="logo-box mb-6 shadow-xl">
-                    <div class="logo-symbol mr-3">D</div>
-                    <span class="text-white font-black tracking-widest uppercase text-xs">Propiedad de Doxus</span>
-                </div>
-                <p class="text-doxus-blue font-bold text-[10px] uppercase tracking-[1px]">© 2026 DOXUS - INFRAESTRUCTURA DE DATOS CLOUD</p>
-                <p class="text-doxus-blue font-light text-[9px] uppercase tracking-[4px] mt-2">MAXIMILIANO ARÉCHIGA-MORALES</p>
-            </footer>
         </main>
     </div>
 
-    <!-- Modales -->
+    <!-- Modal Registro Manual -->
     <div id="task-modal" class="fixed inset-0 bg-doxus-blue/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div class="bg-doxus-blue p-6 text-white flex justify-between items-center border-b-4 border-doxus-yellow">
+        <div class="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl">
+            <div class="bg-doxus-blue p-6 text-white flex justify-between items-center border-b-4 border-doxus-yellow font-black uppercase">
                 <h3 class="font-black text-lg uppercase tracking-tighter">Nuevo Expediente</h3>
                 <button onclick="closeModal()" class="text-white/40 hover:text-white text-xl">✕</button>
             </div>
-            <form id="task-form" onsubmit="saveTask(event)" class="p-8 space-y-6">
-                <input type="text" id="task-title" placeholder="Título (Nombre del archivo/cliente)" required class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-4 outline-none font-bold text-sm focus:border-doxus-yellow">
-                <input type="text" id="task-summary" placeholder="Tarea a desarrollar (Ej: Validar firmas)" required class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-4 outline-none text-sm focus:border-doxus-yellow">
+            <form id="task-form" onsubmit="saveTask(event)" class="p-8 space-y-4">
+                <input type="text" id="task-title" placeholder="Nombre del expediente" required class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-4 outline-none font-black text-sm focus:border-doxus-yellow">
+                <textarea id="task-summary" placeholder="Resumen del contenido..." required class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-4 outline-none text-sm focus:border-doxus-yellow h-24"></textarea>
                 <div class="grid grid-cols-2 gap-4">
-                    <select id="task-category" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 text-xs font-bold outline-none"><option>Legal / Contratos</option><option>Finanzas / Excel</option><option>Documentación / Word</option></select>
-                    <select id="task-priority" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 text-xs font-bold outline-none"><option>Alta</option><option>Media</option><option>Baja</option></select>
+                    <select id="task-category" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none">
+                        <option>Contrato</option>
+                        <option>Revisión de Fianzas</option>
+                        <option>Validar</option>
+                    </select>
+                    <select id="task-priority" class="w-full bg-doxus-gray border border-doxus-border rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none">
+                        <option>Alta</option><option>Media</option><option>Baja</option>
+                    </select>
                 </div>
-                <button type="submit" class="w-full bg-doxus-yellow text-doxus-blue font-black py-4 rounded-xl uppercase tracking-widest text-xs shadow-lg active:scale-95 transition-all">Sincronizar en la Nube</button>
+                <button type="submit" class="w-full bg-doxus-yellow text-doxus-blue font-black py-4 rounded-xl uppercase tracking-widest text-xs active:scale-95 transition-all shadow-lg shadow-yellow-500/20">Registrar en Nube</button>
             </form>
         </div>
     </div>
 
-    <!-- Contenedor para Reportes Filtrados (Solo Impresión) -->
+    <!-- Contenedor Reportes -->
     <div id="print-container" class="hidden print-only"></div>
 
     <script>
         let tasks = [];
         let filteredTasks = [];
 
-        function switchView(viewId) {
-            ['dashboard', 'tasks'].forEach(v => document.getElementById(`view-${v}`).classList.add('hidden'));
-            document.getElementById(`view-${viewId}`).classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach(btn => {
-                const active = btn.getAttribute('onclick').includes(viewId);
-                btn.classList.toggle('bg-white/10', active);
-                btn.classList.toggle('text-doxus-yellow', active);
-                btn.classList.toggle('text-white/60', !active);
-            });
-            document.getElementById('view-title').innerText = viewId === 'dashboard' ? 'Panel de Control' : 'Listado Maestro';
+        function switchView(v) {
+            ['dashboard', 'tasks'].forEach(id => document.getElementById(`view-${id}`).classList.add('hidden'));
+            document.getElementById(`view-${v}`).classList.remove('hidden');
         }
 
         async function checkPass() {
-            const passInput = document.getElementById('pass-input');
-            const errorMsg = document.getElementById('pass-error');
-            const loginBtn = document.getElementById('login-btn');
-
-            if(passInput.value === 'Doxus') {
+            if(document.getElementById('pass-input').value === 'Doxus') {
                 const dbCtx = window.doxusDB;
-                loginBtn.innerText = "CONECTANDO...";
-                loginBtn.disabled = true;
-
+                document.getElementById('login-btn').innerText = "AUTENTICANDO...";
                 try {
-                    // Regla 3: Autenticación antes de cualquier consulta
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await dbCtx.signInWithCustomToken(dbCtx.auth, __initial_auth_token);
                     } else {
                         await dbCtx.signInAnonymously(dbCtx.auth);
                     }
-
-                    // Esperar a que el estado de auth sea efectivo
+                    
                     dbCtx.onAuthStateChanged(dbCtx.auth, (user) => {
                         if (user) {
                             document.getElementById('lock-screen').style.opacity = '0';
@@ -259,38 +249,28 @@
                             }, 500);
                         }
                     });
-
                 } catch (e) { 
-                    console.error("Auth Error:", e);
-                    errorMsg.innerText = "ERROR CLOUD: REVISA REGLAS DE FIREBASE";
-                    errorMsg.classList.remove('hidden');
-                    loginBtn.innerText = "REINTENTAR";
-                    loginBtn.disabled = false;
+                    console.error(e); 
+                    document.getElementById('login-btn').innerText = "ERROR - REINTENTAR";
+                    document.getElementById('login-btn').disabled = false;
                 }
             } else {
-                errorMsg.innerText = "CONTRASEÑA INCORRECTA";
-                errorMsg.classList.remove('hidden');
-                setTimeout(() => errorMsg.classList.add('hidden'), 2000);
+                document.getElementById('pass-error').innerText = "CONTRASEÑA INCORRECTA";
+                document.getElementById('pass-error').classList.remove('hidden');
             }
         }
 
         function initFirestore() {
             const { db, appId, collection, onSnapshot, auth } = window.doxusDB;
-            if (!auth.currentUser) return; // Guard Rule 3
-
+            if (!auth.currentUser) return;
             const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'pendientes');
-            
-            // Suscripción con manejo de errores obligatorio
             onSnapshot(collRef, (snapshot) => {
                 tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderTasks();
             }, (error) => {
-                console.error("Firestore Permission Error:", error);
+                console.error("Firebase Snapshot Error:", error);
                 const syncBadge = document.getElementById('sync-status');
-                if (syncBadge) {
-                    syncBadge.innerText = "⚠️ ERROR DE PERMISOS";
-                    syncBadge.className = "text-xs text-rose-500 mt-4 flex items-center justify-center font-bold";
-                }
+                if (syncBadge) { syncBadge.innerText = "⚠️ ERROR"; syncBadge.className = "text-xs text-rose-500 font-bold mt-4"; }
             });
         }
 
@@ -298,7 +278,6 @@
             e.preventDefault();
             const { db, appId, collection, addDoc, auth } = window.doxusDB;
             if (!auth.currentUser) return;
-
             await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'pendientes'), {
                 title: document.getElementById('task-title').value,
                 summary: document.getElementById('task-summary').value,
@@ -314,7 +293,6 @@
         async function toggleTask(id) {
             const { db, appId, doc, updateDoc, auth } = window.doxusDB;
             if (!auth.currentUser) return;
-
             const t = tasks.find(x => x.id === id);
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pendientes', id), { completed: !t.completed });
         }
@@ -328,12 +306,16 @@
         function renderTasks() {
             const body = document.getElementById('task-list-body');
             const search = document.getElementById('search-input').value.toLowerCase();
-            
-            filteredTasks = tasks.filter(t => t.title.toLowerCase().includes(search));
+            filteredTasks = tasks.filter(t => t.title.toLowerCase().includes(search) || t.summary.toLowerCase().includes(search));
 
             body.innerHTML = filteredTasks.map(t => {
-                const subjectClean = t.title.replace('[📁 DRIVE]', '').trim();
-                const gmailLink = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(subjectClean)}`;
+                const searchLink = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(t.title.replace('[📁]', '').trim())}`;
+                
+                // Estilos por categoría
+                let catStyle = "bg-slate-100 text-slate-600";
+                if(t.category === "Contrato") catStyle = "bg-emerald-100 text-emerald-700";
+                if(t.category === "Revisión de Fianzas") catStyle = "bg-blue-100 text-blue-700";
+                if(t.category === "Validar") catStyle = "bg-amber-100 text-amber-700";
 
                 return `
                     <tr class="group hover:bg-doxus-gray transition-colors">
@@ -341,21 +323,24 @@
                             <div class="flex items-center gap-3">
                                 <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask('${t.id}')" class="accent-doxus-yellow h-4 w-4 cursor-pointer">
                                 <div>
-                                    <div class="text-sm font-black ${t.completed ? 'line-through opacity-30 text-doxus-light' : 'text-doxus-blue'}">${t.title}</div>
-                                    <div class="text-[11px] text-doxus-light font-bold mt-0.5 uppercase tracking-wide">${t.summary || 'Sin tarea definida'}</div>
+                                    <div class="text-sm font-black ${t.completed ? 'line-through opacity-30 text-doxus-light' : 'text-doxus-blue'} uppercase tracking-tighter">${t.title}</div>
+                                    <div class="text-[10px] text-doxus-light font-bold mt-0.5 leading-tight line-clamp-1 italic font-medium">${t.summary || 'Pendiente de auditar'}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-5 text-[10px] font-black uppercase opacity-50 font-black tracking-widest">${t.category}</td>
-                        <td class="px-6 py-5"><span class="text-[9px] font-black px-3 py-1 rounded-full ${t.priority === 'Alta' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-doxus-light'} uppercase tracking-tighter">${t.priority}</span></td>
+                        <td class="px-6 py-5">
+                            <span class="text-[9px] font-black uppercase px-2 py-1 rounded-md ${catStyle} tracking-wider font-black">${t.category}</span>
+                        </td>
+                        <td class="px-6 py-5">
+                            <span class="text-[9px] font-black px-3 py-1 rounded-full ${t.priority === 'Alta' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-doxus-light'} uppercase font-black">${t.priority}</span>
+                        </td>
                         <td class="px-6 py-5 text-right flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <a href="${gmailLink}" target="_blank" title="Ver en Gmail" class="text-doxus-light hover:text-doxus-blue text-xs">✉️</a>
+                            <a href="${searchLink}" target="_blank" title="Buscar en Gmail" class="text-doxus-light hover:text-doxus-blue">✉️</a>
                             <button onclick="deleteTask('${t.id}')" class="text-rose-400 hover:text-rose-600">🗑️</button>
                         </td>
                     </tr>
                 `;
             }).join('');
-            
             document.getElementById('stat-total').innerText = tasks.length;
             document.getElementById('stat-high').innerText = tasks.filter(t => t.priority === 'Alta' && !t.completed).length;
         }
@@ -363,36 +348,29 @@
         function printFilteredReports() {
             const printArea = document.getElementById('print-container');
             if (filteredTasks.length === 0) return;
-
             printArea.innerHTML = filteredTasks.map(t => `
                 <div class="page-break p-12 text-doxus-blue">
                     <div class="flex justify-between border-b-4 border-doxus-yellow pb-6 mb-8">
-                        <div class="bg-doxus-blue p-4 rounded-xl flex items-center">
-                            <div class="bg-doxus-yellow text-doxus-blue font-black w-8 h-8 flex items-center justify-center rounded mr-3">D</div>
-                            <span class="text-white font-black uppercase tracking-widest text-xs">Ficha de Auditoría Doxus</span>
-                        </div>
-                        <div class="text-right text-[10px] font-black uppercase text-doxus-light">ID: ${t.id.substring(0,8)}</div>
+                        <div class="logo-box-cloud" style="padding: 8px 16px;"><img src="logo.png" style="height: 25px;"></div>
+                        <div class="text-right text-[10px] font-black uppercase text-doxus-light">Expediente ID: ${t.id.substring(0,8)}</div>
                     </div>
                     <h2 class="text-3xl font-black uppercase tracking-tighter mb-4">${t.title}</h2>
                     <div class="bg-doxus-yellow/10 p-6 rounded-2xl mb-8 border-l-4 border-doxus-yellow">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-doxus-blue mb-2">Tarea a Desarrollar:</p>
-                        <p class="text-lg font-bold">${t.summary || 'Pendiente de asignar'}</p>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-doxus-blue mb-2">Contenido del Correo:</p>
+                        <p class="text-sm italic font-medium leading-relaxed">"${t.summary || 'Sin resumen registrado.'}"</p>
                     </div>
                     <div class="grid grid-cols-2 gap-8">
-                        <div class="bg-doxus-gray p-6 rounded-2xl border border-doxus-border">
-                            <div class="text-[10px] font-black text-doxus-light uppercase mb-4 tracking-widest font-black">Información de Clasificación</div>
-                            <p class="text-sm font-bold">Categoría: ${t.category}</p>
-                            <p class="text-sm font-bold mt-2">Prioridad: ${t.priority}</p>
+                        <div class="bg-doxus-gray p-6 rounded-2xl border border-doxus-border font-bold">
+                            <div class="text-[10px] font-black text-doxus-light uppercase mb-2 tracking-widest font-black">Clasificación Estratégica</div>
+                            <p class="text-sm font-black uppercase">${t.category} | Prioridad: ${t.priority}</p>
                         </div>
-                        <div class="bg-doxus-gray p-6 rounded-2xl border border-doxus-border">
-                            <div class="text-[10px] font-black text-doxus-light uppercase mb-4 tracking-widest font-black">Estatus Operativo</div>
-                            <p class="text-sm font-bold">Estado: ${t.completed ? 'Auditado / Finalizado' : 'Vigente'}</p>
-                            <p class="text-sm font-bold mt-2">Fecha: ${new Date(t.created).toLocaleDateString()}</p>
+                        <div class="bg-doxus-gray p-6 rounded-2xl border border-doxus-border font-bold">
+                            <div class="text-[10px] font-black text-doxus-light uppercase mb-2 tracking-widest font-black">Auditado</div>
+                            <p class="text-sm font-black uppercase">${t.completed ? 'SI' : 'PENDIENTE'}</p>
                         </div>
                     </div>
                 </div>
             `).join('');
-
             window.print();
         }
 
