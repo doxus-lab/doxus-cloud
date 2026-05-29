@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Técnico - Patrimonio de Familia</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        doxusBlue: '#262a36',
+                        doxusYellow: '#Ffbc06',
+                        doxusGray: '#f8f9fa',
+                        doxusBorder: '#e9ecef',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for UI Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Base Custom Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #262a36;
+        }
+        
+        /* Sticky Nav customization */
+        .sticky-nav {
+            background-color: #262a36;
+            border-bottom: 3px solid #Ffbc06;
+        }
+
+        /* Card Presentation Styling according to strict rules */
+        .card-presentation {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.02);
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-presentation:hover {
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+            transform: translateY(-2px);
+            border-color: #d1d5db;
+        }
+
+        /* Card Section Indicator */
+        .card-index {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #262a36;
+            opacity: 0.4;
+            letter-spacing: 0.15em;
+        }
+
+        /* Focus Ring Style */
+        .focus-yellow:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 188, 6, 0.4);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #ffffff;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #262a36;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1e212b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- BLOCK SCREEN (SEGURIDAD DE ACCESO) -->
+    <div id="lock-screen" class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#262a36] px-4">
+        <div class="w-full max-w-md bg-[#1f222c] border border-gray-800 rounded-[2rem] p-8 md:p-10 text-center shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+            <!-- Doxus Logo & Fallback System -->
+            <div class="flex justify-center mb-6">
+                <div class="relative">
+                    <img src="logo.png" alt="Doxus Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" class="h-10">
+                    <div class="hidden flex items-center justify-center w-12 h-12 rounded bg-[#Ffbc06] text-[#262a36] font-black text-xl shadow-lg">D</div>
+                </div>
+            </div>
+            
+            <h2 class="text-white font-black text-2xl tracking-tight mb-2 uppercase">REPORTE RESTRINGIDO</h2>
+            <p class="text-gray-400 text-sm mb-8 leading-relaxed">
+                Este panel contiene información jurídica confidencial de la operación referida. Introduzca la contraseña obligatoria de acceso.
+            </p>
+            
+            <div class="space-y-4">
+                <div class="relative">
+                    <input type="password" id="password-input" placeholder="Contraseña de Seguridad" class="w-full px-5 py-4 bg-[#262a36] border border-gray-700 text-white placeholder-gray-500 rounded-xl text-center tracking-widest font-mono text-lg focus:outline-none focus:ring-2 focus:ring-[#Ffbc06] focus:border-transparent transition-all">
+                </div>
+                
+                <!-- Custom Alert -->
+                <div id="error-alert" class="hidden text-red-400 text-xs font-semibold bg-red-950/40 border border-red-900/50 py-3 px-4 rounded-xl items-center gap-2 justify-center">
+                    <i class="fa-solid fa-circle-exclamation"></i> Contraseña incorrecta. Por favor intente de nuevo.
+                </div>
+                
+                <button onclick="validatePassword()" class="w-full py-4 bg-[#Ffbc06] text-[#262a36] font-bold rounded-xl tracking-wider hover:bg-yellow-400 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-shield-halved"></i> DESBLOQUEAR DOCUMENTO
+                </button>
+            </div>
+            <div class="mt-8 text-gray-600 text-[10px] tracking-widest uppercase">
+                DOXUS LEGAL INTELLIGENCE • CODESECURE
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER (HIDDEN UNTIL UNLOCKED) -->
+    <div id="app-content" class="opacity-0 transition-opacity duration-700 flex-grow flex flex-col">
+        
+        <!-- STICKY NAV -->
+        <header class="sticky-nav sticky top-0 z-50 h-20 px-4 md:px-8 flex items-center justify-between shadow-lg">
+            <div class="flex items-center gap-4">
+                <!-- Nav Logo with Fallback -->
+                <div class="logo-container">
+                    <img src="logo.png" alt="Doxus Nav" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" class="h-8">
+                    <div class="hidden flex items-center justify-center w-10 h-10 rounded bg-[#Ffbc06] text-[#262a36] font-black text-lg">D</div>
+                </div>
+                <div class="hidden md:flex flex-col border-l border-gray-700 pl-4">
+                    <span class="text-white text-xs font-bold tracking-widest uppercase">REPORTE TÉCNICO</span>
+                    <span class="text-gray-400 text-[10px] font-medium uppercase">Patrimonio de Familia</span>
+                </div>
+            </div>
+            
+            <!-- Quick Anchor Navigation -->
+            <nav class="hidden lg:flex items-center gap-6 text-xs text-white font-semibold tracking-wider">
+                <a href="#inventario" class="hover:text-[#Ffbc06] transition-colors">01 INVENTARIO</a>
+                <a href="#analisis" class="hover:text-[#Ffbc06] transition-colors">02 ANÁLISIS</a>
+                <a href="#pagos" class="hover:text-[#Ffbc06] transition-colors">03 VALORES Y ESQUEMA</a>
+                <a href="#tiempos" class="hover:text-[#Ffbc06] transition-colors">04 DIAGNÓSTICO</a>
+                <a href="#recomendaciones" class="hover:text-[#Ffbc06] transition-colors">05 HOJA DE RUTA</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> VERIFICADO CNPCF
+                </span>
+            </div>
+        </header>
+
+        <!-- HERO BANNER -->
+        <section class="bg-[#262a36] text-white py-16 md:py-24 px-4 md:px-8 relative overflow-hidden">
+            <div class="absolute inset-0 opacity-5 pointer-events-none">
+                <div class="absolute -top-1/2 -left-1/4 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+                <div class="absolute -bottom-1/2 -right-1/4 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+            </div>
+            
+            <div class="max-w-6xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                <div class="lg:col-span-7 space-y-6">
+                    <span class="text-xs text-[#Ffbc06] font-bold tracking-widest uppercase bg-yellow-400/10 border border-yellow-400/20 px-3 py-1.5 rounded-md">
+                        ANÁLISIS COMPARATIVO Y PROCESAL
+                    </span>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-none uppercase">
+                        Patrimonio de Familia
+                    </h1>
+                    <p class="text-gray-400 font-semibold text-sm md:text-md uppercase tracking-wider">
+                        Evaluación de la Legislación de Jalisco frente al Código Nacional (CNPCF)
+                    </p>
+                    <div class="w-20 h-1 bg-[#Ffbc06]"></div>
+                </div>
+                
+                <div class="lg:col-span-5 bg-[#1f222c] border border-gray-800 rounded-3xl p-6 md:p-8 space-y-4 shadow-xl">
+                    <h3 class="text-white font-extrabold text-sm tracking-widest uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice text-[#Ffbc06]"></i> RESUMEN EJECUTIVO
+                    </h3>
+                    <p class="text-gray-300 text-xs md:text-sm leading-relaxed text-justify">
+                        El patrimonio de familia se consolida como una institución jurídica de interés público diseñada para garantizar la subsistencia y estabilidad económica del núcleo familiar mediante la protección de bienes estratégicos.
+                    </p>
+                    <p class="text-gray-400 text-xs leading-relaxed text-justify">
+                        Este análisis detalla la transición desde regímenes locales hacia un modelo procesal unificado bajo el Código Nacional de Procedimientos Civiles y Familiares (CNPCF), destacando la marcada divergencia entre la rigidez de la legislación federal y la vanguardia protectora del Estado de Jalisco.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTAINER FOR SECTIONS -->
+        <main class="max-w-6xl mx-auto px-4 md:px-8 py-16 space-y-16 flex-grow">
+
+            <!-- APARTADO 01: INVENTARIO DE DOCUMENTOS -->
+            <section id="inventario" class="scroll-mt-24">
+                <div class="card-presentation p-6 md:p-8">
+                    <span class="card-index">APARTADO 01</span>
+                    <h2 class="text-2xl font-black text-[#262a36] uppercase tracking-tight mb-2 flex items-center gap-3">
+                        <span class="w-8 h-8 rounded bg-[#262a36] text-[#Ffbc06] flex items-center justify-center font-bold text-sm">01</span>
+                        Inventario de Documentos y Fuentes Normativas
+                    </h2>
+                    <p class="text-gray-500 text-xs md:text-sm mb-6 leading-relaxed max-w-2xl">
+                        Catálogo de los fundamentos constitucionales, tratados de derechos humanos y ordenamientos sustantivos y procesales que regulan la figura.
+                    </p>
+                    
+                    <!-- Clean Table Container -->
+                    <div class="overflow-x-auto rounded-2xl border border-[#e9ecef]">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-[#262a36] text-white text-[11px] font-extrabold tracking-wider uppercase">
+                                    <th class="py-4 px-5 w-24">ID</th>
+                                    <th class="py-4 px-5">Documento / Ordenamiento</th>
+                                    <th class="py-4 px-5">Clasificación de la Fuente</th>
+                                    <th class="py-4 px-5">Sustento Normativo Clave</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[#e9ecef] text-xs text-[#262a36]">
+                                <tr class="hover:bg-gray-100/50 transition-colors">
+                                    <td class="py-4 px-5 font-bold text-gray-500">DOC-01</td>
+                                    <td class="py-4 px-5 font-black uppercase text-[12px]">Constitución Política (CPEUM)</td>
+                                    <td class="py-4 px-5"><span class="px-2.5 py-1 bg-red-100 text-red-800 font-bold rounded-full text-[10px] uppercase">Constitucional</span></td>
+                                    <td class="py-4 px-5 font-medium text-gray-600">Artículos 4º (vivienda digna) y 123 (Apartado A, Fracción XXVIII).</td>
+                                </tr>
+                                <tr class="hover:bg-gray-100/50 transition-colors">
+                                    <td class="py-4 px-5 font-bold text-gray-500">DOC-02</td>
+                                    <td class="py-4 px-5 font-black uppercase text-[12px]">Tratados de Derechos Humanos (DUDH & PIDESC)</td>
+                                    <td class="py-4 px-5"><span class="px-2.5 py-1 bg-blue-100 text-blue-800 font-bold rounded-full text-[10px] uppercase">Internacional</span></td>
+                                    <td class="py-4 px-5 font-medium text-gray-600">Artículo 25 de la DUDH y Artículo 11 del PIDESC, enfocados en amparo social.</td>
+                                </tr>
+                                <tr class="hover:bg-gray-100/50 transition-colors">
+                                    <td class="py-4 px-5 font-bold text-gray-500">DOC-03</td>
+                                    <td class="py-4 px-5 font-black uppercase text-[12px]">Código Civil del Estado de Jalisco (CCJ)</td>
+                                    <td class="py-4 px-5"><span class="px-2.5 py-1 bg-purple-100 text-purple-800 font-bold rounded-full text-[10px] uppercase">Sustantivo Local</span></td>
+                                    <td class="py-4 px-5 font-medium text-gray-600">Artículo 786. Destaca por la ausencia de límites económicos y protección de bienes muebles.</td>
+                                </tr>
+                                <tr class="hover:bg-gray-100/50 transition-colors">
+                                    <td class="py-4 px-5 font-bold text-gray-500">DOC-04</td>
+                                    <td class="py-4 px-5 font-black uppercase text-[12px]">Código Civil Federal (CCF)</td>
+                                    <td class="py-4 px-5"><span class="px-2.5 py-1 bg-amber-100 text-amber-800 font-bold rounded-full text-[10px] uppercase">Sustantivo Federal</span></td>
+                                    <td class="py-4 px-5 font-medium text-gray-600">Artículo 739 y correlativos. Establece topes financieros rígidos en UMAs.</td>
+                                </tr>
+                                <tr class="hover:bg-gray-100/50 transition-colors">
+                                    <td class="py-4 px-5 font-bold text-gray-500">DOC-05</td>
+                                    <td class="py-4 px-5 font-black uppercase text-[12px]">Cód. Nacional de Proc. Civiles y Familiares (CNPCF)</td>
+                                    <td class="py-4 px-5"><span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-full text-[10px] uppercase">Procesal Nacional</span></td>
+                                    <td class="py-4 px-5 font-medium text-gray-600">Artículos 740 y 1038. Unificación procesal oral y exclusión de gravámenes electrónicos.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- APARTADO 02: ANÁLISIS CONTRACTUAL Y SUSTANTIVO -->
+            <section id="analisis" class="scroll-mt-24">
+                <div class="card-presentation p-6 md:p-8">
+                    <span class="card-index">APARTADO 02</span>
+                    <h2 class="text-2xl font-black text-[#262a36] uppercase tracking-tight mb-2 flex items-center gap-3">
+                        <span class="w-8 h-8 rounded bg-[#262a36] text-[#Ffbc06] flex items-center justify-center font-bold text-sm">02</span>
+                        Análisis Sustantivo y Vías de Constitución
+                    </h2>
+                    <p class="text-gray-500 text-xs md:text-sm mb-6 leading-relaxed max-w-2xl">
+                        Análisis de legitimación y requerimientos jurídicos necesarios para operar e instrumentar judicialmente la afectación del patrimonio de familia.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Card 01: Legitimados -->
+                        <div class="bg-white border border-[#e9ecef] rounded-2xl p-6 space-y-4">
+                            <h3 class="text-xs font-black text-gray-400 tracking-wider uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-users text-[#Ffbc06] text-sm"></i> LEGITIMACIÓN DE LAS PARTES
+                            </h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <span class="text-xs font-extrabold text-[#262a36] block uppercase">A. VÍA VOLUNTARIA U ORDINARIA</span>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        Impulsada por el propietario en pleno ejercicio de su autonomía. Están facultados los cónyuges, concubinos (individualmente o de común acuerdo), ascendientes para tutelar descendientes y hogares unipersonales en legislaciones modernas.
+                                    </p>
+                                </div>
+                                <div class="border-t border-gray-100 pt-3">
+                                    <span class="text-xs font-extrabold text-[#262a36] block uppercase">B. VÍA FORZOSA O DE SALVAGUARDA ALIMENTARIA</span>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        Activada cuando existe riesgo inminente de dilapidación de bienes por parte del deudor alimentario. Se faculta a los acreedores alimentistas (o tutores), parientes con derecho al aseguramiento y al Ministerio Público.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 02: Requisitos de Constitución -->
+                        <div class="bg-white border border-[#e9ecef] rounded-2xl p-6 space-y-4">
+                            <h3 class="text-xs font-black text-gray-400 tracking-wider uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-folder-open text-[#Ffbc06] text-sm"></i> REQUISITOS MATERIALES (SUSTANTIVOS)
+                            </h3>
+                            <div class="space-y-2">
+                                <div class="flex items-start gap-2.5">
+                                    <span class="bg-[#262a36] text-[#Ffbc06] text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">1</span>
+                                    <div class="text-xs">
+                                        <strong class="font-extrabold text-[#262a36] uppercase">Capacidad y Territorialidad:</strong> Mayoría de edad del constituyente y acreditación de residencia en la jurisdicción de ubicación de los bienes.
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-2.5">
+                                    <span class="bg-[#262a36] text-[#Ffbc06] text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">2</span>
+                                    <div class="text-xs">
+                                        <strong class="font-extrabold text-[#262a36] uppercase">Libertad de Gravamen:</strong> Presentación de títulos inscritos en el Registro Público acompañados del certificado de libertad de cargas.
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-2.5">
+                                    <span class="bg-[#262a36] text-[#Ffbc06] text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">3</span>
+                                    <div class="text-xs">
+                                        <strong class="font-extrabold text-[#262a36] uppercase">Unicidad y Parentesco:</strong> Prohibición de constituir más de un patrimonio simultáneamente; acreditación de lazos familiares mediante actas civiles oficiales.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CNPCF Table -->
+                    <div class="mt-8 space-y-4">
+                        <h3 class="text-xs font-black text-[#262a36] tracking-wider uppercase">
+                            REQUISITOS DE ADMISIBILIDAD PROCESAL (CNPCF)
+                        </h3>
+                        <div class="overflow-x-auto rounded-xl border border-[#e9ecef]">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-gray-100 text-[#262a36] font-bold uppercase text-[10px]">
+                                        <th class="py-3 px-4 w-1/4">Requisito</th>
+                                        <th class="py-3 px-4">Detalle Técnico Procesal</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#e9ecef]">
+                                    <tr>
+                                        <td class="py-3 px-4 font-bold uppercase text-[11px] text-[#262a36]">Identificación</td>
+                                        <td class="py-3 px-4 text-gray-600">Nombre, firma y designación formal de domicilio procesal físico o electrónico.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 font-bold uppercase text-[11px] text-[#262a36]">Citaciones</td>
+                                        <td class="py-3 px-4 text-gray-600">Identificación clara y llamado a juicio de beneficiarios o copropietarios del bien.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 font-bold uppercase text-[11px] text-[#262a36]">Petición Concreta</td>
+                                        <td class="py-3 px-4 text-gray-600">Descripción detallada de los bienes, acompañando datos registrales, catastrales y colindancias.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 font-bold uppercase text-[11px] text-[#262a36]">Narración de Hechos</td>
+                                        <td class="py-3 px-4 text-gray-600">Manifestación solemne bajo protesta de decir verdad de que los bienes se destinarán al sustento del hogar.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4 font-bold uppercase text-[11px] text-[#262a36]">Pruebas</td>
+                                        <td class="py-3 px-4 text-gray-600">Exhibición formal de actas del registro civil, escrituras de propiedad, avalúos e informes.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- APARTADO 03: VALORES Y ESQUEMA DE PAGOS/FINANCIERO -->
+            <section id="pagos" class="scroll-mt-24">
+                <div class="card-presentation p-6 md:p-8">
+                    <span class="card-index">APARTADO 03</span>
+                    <h2 class="text-2xl font-black text-[#262a36] uppercase tracking-tight mb-2 flex items-center gap-3">
+                        <span class="w-8 h-8 rounded bg-[#262a36] text-[#Ffbc06] flex items-center justify-center font-bold text-sm">03</span>
+                        Límites de Valor e Impacto Financiero
+                    </h2>
+                    <p class="text-gray-500 text-xs md:text-sm mb-6 leading-relaxed max-w-2xl">
+                        Representación financiera de los límites legales máximos exigidos para proteger el patrimonio y comparación directa entre el ámbito federal y la desregulación de Jalisco.
+                    </p>
+
+                    <!-- CAJA RESALTADA EN AMARILLO (OBLIGATORIA) -->
+                    <div class="bg-[#Ffbc06] text-[#262a36] rounded-2xl p-6 md:p-8 shadow-md border border-[#e6a900]">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-[#262a36]/10 pb-6 mb-6 gap-4">
+                            <div>
+                                <span class="text-xs font-black uppercase tracking-widest text-[#262a36]/70">Análisis Comparativo de Valuaciones</span>
+                                <h3 class="text-xl font-black uppercase tracking-tight text-[#262a36]">ESQUEMA DE VALORES Y LÍMITES FINANCIEROS (2026)</h3>
+                            </div>
+                            <span class="text-xs font-bold bg-[#262a36] text-[#Ffbc06] px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+                                Cuantías de Ley
+                            </span>
+                        </div>
+
+                        <!-- 3-Column Layout with exact names: Monto Total, Pagado, Pendiente -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-[#262a36]">
+                            <div class="bg-[#ffffff]/50 backdrop-blur-sm rounded-xl p-5 border border-[#262a36]/5">
+                                <span class="text-[11px] font-extrabold tracking-widest uppercase block text-[#262a36]/80 mb-1">MONTO TOTAL FEDERAL (UMA)</span>
+                                <span class="text-2xl md:text-3xl font-black tracking-tight">$428,181.50</span>
+                                <span class="text-[10px] font-bold block mt-1 uppercase text-[#262a36]/60">Cálculo: $3,650 \times \text{UMA}$ (CCF)</span>
+                            </div>
+                            
+                            <div class="bg-[#ffffff]/50 backdrop-blur-sm rounded-xl p-5 border border-[#262a36]/5">
+                                <span class="text-[11px] font-extrabold tracking-widest uppercase block text-[#262a36]/80 mb-1">MONTO FEDERAL (SALARIO MÍNIMO)</span>
+                                <span class="text-2xl md:text-3xl font-black tracking-tight">$1,368,348.50</span>
+                                <span class="text-[10px] font-bold block mt-1 uppercase text-[#262a36]/60">Cálculo: $3,650 \times \text{SM}$ (CCF)</span>
+                            </div>
+                            
+                            <div class="bg-[#ffffff]/50 backdrop-blur-sm rounded-xl p-5 border border-[#262a36]/5 flex flex-col justify-between">
+                                <div>
+                                    <span class="text-[11px] font-extrabold tracking-widest uppercase block text-[#262a36]/80 mb-1">MONTO JALISCO (SIN LÍMITE)</span>
+                                    <span class="text-2xl md:text-3xl font-black tracking-tight block">Ilimitado</span>
+                                    <!-- Interactive PDF Decree Link -->
+                                    <a href="https://apiperiodico.jalisco.gob.mx/newspaper/import/11-07-20-v.pdf" target="_blank" class="text-[10px] font-bold inline-flex items-center gap-1 mt-1 uppercase text-emerald-800 hover:text-emerald-950 underline transition-colors">
+                                        Decreto 27993 / Tope Derogado <i class="fa-solid fa-up-right-from-square text-[8px]"></i>
+                                    </a>
+                                </div>
+                                <!-- Small Note (Jalisco previous limits before Decree) -->
+                                <span class="text-[9px] text-gray-700 block mt-2.5 leading-tight font-semibold italic">
+                                    Nota: Antes del decreto podrían ser hasta 40 mil salarios mínimos.
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Complementary alert of limits -->
+                        <div class="mt-6 bg-[#262a36] text-white p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                            <span class="font-medium">
+                                <i class="fa-solid fa-circle-info text-[#Ffbc06] mr-1.5"></i> 
+                                <strong>Crítica al Esquema Federal:</strong> El tope determinado en salarios mínimos o UMAs ($3,650 \times \text{UMA}$) es considerado insuficiente para proteger inmuebles en zonas urbanas, lo que contrasta con el modelo de protección irrestricta de Jalisco.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- APARTADO 04: DIAGNÓSTICO Y TIEMPOS -->
+            <section id="tiempos" class="scroll-mt-24">
+                <div class="card-presentation p-6 md:p-8">
+                    <span class="card-index">APARTADO 04</span>
+                    <h2 class="text-2xl font-black text-[#262a36] uppercase tracking-tight mb-2 flex items-center gap-3">
+                        <span class="w-8 h-8 rounded bg-[#262a36] text-[#Ffbc06] flex items-center justify-center font-bold text-sm">04</span>
+                        Diagnóstico Comparativo y Tiempos Procesales
+                    </h2>
+                    <p class="text-gray-500 text-xs md:text-sm mb-8 leading-relaxed max-w-2xl">
+                        Mapeo cronológico de los distintos sistemas de tramitación y análisis del marco de protección contra fraudes y ejecuciones forzosas.
+                    </p>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        
+                        <!-- VERTICAL TIMELINE -->
+                        <div class="lg:col-span-6 space-y-6 relative pl-6 border-l-2 border-[#e9ecef]">
+                            <h3 class="text-xs font-black text-gray-400 tracking-wider uppercase mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-code-branch text-[#Ffbc06] text-sm"></i> COMPARATIVA DEL FLUJO DE TRÁMITE
+                            </h3>
+                            
+                            <!-- Step 1 -->
+                            <div class="relative">
+                                <span class="absolute -left-[31px] top-1.5 w-4.5 h-4.5 rounded-full bg-[#262a36] border-4 border-[#Ffbc06] z-10"></span>
+                                <div class="bg-white p-4 rounded-xl border border-[#e9ecef]">
+                                    <span class="text-[10px] font-extrabold text-[#Ffbc06] bg-[#262a36] px-2 py-0.5 rounded uppercase">Vía Tradicional (Escrita / CPCJ)</span>
+                                    <h4 class="font-black text-xs text-[#262a36] uppercase mt-2">Procedimiento Escrito Rigorista</h4>
+                                    <p class="text-[11px] text-gray-600 mt-1">Radicación física de solicitud, vista por 3 días al MP, desahogo de testimonios (mínimo dos testigos) y posterior sentencia e inscripción registral.</p>
+                                </div>
+                            </div>
+
+                            <!-- Step 2 -->
+                            <div class="relative">
+                                <span class="absolute -left-[31px] top-1.5 w-4.5 h-4.5 rounded-full bg-[#262a36] border-4 border-[#Ffbc06] z-10"></span>
+                                <div class="bg-white p-4 rounded-xl border border-[#e9ecef]">
+                                    <span class="text-[10px] font-extrabold text-[#Ffbc06] bg-[#262a36] px-2 py-0.5 rounded uppercase">Vía Moderna (Oral / CNPCF)</span>
+                                    <h4 class="font-black text-xs text-[#262a36] uppercase mt-2">Oralidad e Inmediatez</h4>
+                                    <p class="text-[11px] text-gray-600 mt-1">Presentación con pruebas, plazo de 3 días para admitir o subsanar, audiencia única grabada de desahogo y alegatos, y dictado de sentencia oral con oficio electrónico directo.</p>
+                                </div>
+                            </div>
+
+                            <!-- Step 3 -->
+                            <div class="relative">
+                                <span class="absolute -left-[31px] top-1.5 w-4.5 h-4.5 rounded-full bg-[#262a36] border-4 border-[#Ffbc06] z-10"></span>
+                                <div class="bg-white p-4 rounded-xl border border-[#e9ecef]">
+                                    <span class="text-[10px] font-extrabold text-[#Ffbc06] bg-[#262a36] px-2 py-0.5 rounded uppercase">Vía Administrativa (Jalisco - Art. 786)</span>
+                                    <h4 class="font-black text-xs text-[#262a36] uppercase mt-2">Afectación Directa por Ministerio de Ley</h4>
+                                    <p class="text-[11px] text-gray-600 mt-1">Para viviendas de interés social adquiridas del Estado. La cláusula protectora se inserta directamente en la escritura pública y se asienta sin necesidad de juicio.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DIAGNOSTICO CRITICO CARD -->
+                        <div class="lg:col-span-6 flex flex-col justify-between space-y-6">
+                            <div class="bg-[#262a36] text-white p-6 rounded-2xl space-y-4 shadow-sm flex-grow">
+                                <h3 class="text-xs font-black text-[#Ffbc06] tracking-wider uppercase flex items-center gap-2">
+                                    <i class="fa-solid fa-shield-halved"></i> BLINDAJE CONTRA FRAUDE Y SUCESIONES
+                                </h3>
+                                <p class="text-xs text-gray-300 leading-relaxed text-justify">
+                                    La figura del patrimonio familiar no ampara la evasión de obligaciones legales preexistentes. El marco normativo regula detalladamente el <strong>fraude a acreedores</strong>:
+                                </p>
+                                <div class="space-y-3 pt-2">
+                                    <div class="border-l-2 border-[#Ffbc06] pl-3">
+                                        <span class="text-[11px] font-extrabold uppercase text-[#Ffbc06] block">Oposición en Vía No Contenciosa</span>
+                                        <p class="text-[11px] text-gray-400 mt-0.5">Si un acreedor preexistente interpone oposición antes de dictarse resolución, el juez familiar disuelve el proceso voluntario y reconduce a la vía oral contenciosa familiar.</p>
+                                    </div>
+                                    <div class="border-l-2 border-[#Ffbc06] pl-3">
+                                        <span class="text-[11px] font-extrabold uppercase text-[#Ffbc06] block">Acción Pauliana o Revocatoria</span>
+                                        <p class="text-[11px] text-gray-400 mt-0.5">En caso de haber sido ya registrado, se puede promover su nulidad ordinaria acreditando que el crédito es anterior, la mala fe y la subsecuente insolvencia del deudor.</p>
+                                    </div>
+                                    <div class="border-l-2 border-[#Ffbc06] pl-3">
+                                        <span class="text-[11px] font-extrabold uppercase text-[#Ffbc06] block">Exclusión Sucesoria Extraordinaria</span>
+                                        <p class="text-[11px] text-gray-400 mt-0.5">El Artículo 740 del CNPCF suspende de manera formal e inmediata las operaciones sucesorias de partición hereditaria sobre el bien afectado para salvaguardar a los sobrevivientes.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- APARTADO 05: RECOMENDACIONES -->
+            <section id="recomendaciones" class="scroll-mt-24">
+                <div class="card-presentation p-6 md:p-8">
+                    <span class="card-index">APARTADO 05</span>
+                    <h2 class="text-2xl font-black text-[#262a36] uppercase tracking-tight mb-2 flex items-center gap-3">
+                        <span class="w-8 h-8 rounded bg-[#262a36] text-[#Ffbc06] flex items-center justify-center font-bold text-sm">05</span>
+                        Hoja de Ruta de Modernización
+                    </h2>
+                    <p class="text-gray-500 text-xs md:text-sm mb-8 leading-relaxed max-w-2xl">
+                        Ejes fundamentales derivados del análisis para la mejora regulatoria de la tutela familiar.
+                    </p>
+
+                    <!-- Row de Recomendaciones del 01 al 04 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        
+                        <!-- Rec 01 -->
+                        <div class="bg-[#f8f9fa] border border-[#e9ecef] p-5 rounded-2xl relative space-y-4 hover:shadow-lg transition-all">
+                            <span class="text-3xl font-black text-gray-200 block">01</span>
+                            <h4 class="font-black text-xs text-[#262a36] uppercase tracking-tight">Modernización del Objeto</h4>
+                            <p class="text-xs text-gray-600 leading-relaxed">
+                                Adecuar leyes locales para permitir, a ejemplo de Jalisco, la protección de vehículos y medios indispensables de producción microindustrial sin topes económicos restrictivos.
+                            </p>
+                        </div>
+
+                        <!-- Rec 02 -->
+                        <div class="bg-[#f8f9fa] border border-[#e9ecef] p-5 rounded-2xl relative space-y-4 hover:shadow-lg transition-all">
+                            <span class="text-3xl font-black text-gray-200 block">02</span>
+                            <h4 class="font-black text-xs text-[#262a36] uppercase tracking-tight">Vía Administrativa Ágil</h4>
+                            <p class="text-xs text-gray-600 leading-relaxed">
+                                Implementar canales de afectación automática para viviendas de interés social directamente en escrituras, evitando la saturación del sistema judicial.
+                            </p>
+                        </div>
+
+                        <!-- Rec 03 -->
+                        <div class="bg-[#f8f9fa] border border-[#e9ecef] p-5 rounded-2xl relative space-y-4 hover:shadow-lg transition-all">
+                            <span class="text-3xl font-black text-gray-200 block">03</span>
+                            <h4 class="font-black text-xs text-[#262a36] uppercase tracking-tight">Garantía Inembargable</h4>
+                            <p class="text-xs text-gray-600 leading-relaxed">
+                                Consolidar la inembargabilidad desde la inscripción en el Registro Público a través de oficios digitales inmediatos previstos en el Artículo 1038 del CNPCF.
+                            </p>
+                        </div>
+
+                        <!-- Rec 04 -->
+                        <div class="bg-[#f8f9fa] border border-[#e9ecef] p-5 rounded-2xl relative space-y-4 hover:shadow-lg transition-all">
+                            <span class="text-3xl font-black text-gray-200 block">04</span>
+                            <h4 class="font-black text-xs text-[#262a36] uppercase tracking-tight">Tutela Sucesoria Directa</h4>
+                            <p class="text-xs text-gray-600 leading-relaxed">
+                                Aplicar la suspensión de partición hereditaria para impedir el desahucio de sobrevivientes ante demandas de coherederos o deudas de la masa hereditaria.
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- FOOTER SECTION -->
+        <footer class="bg-[#262a36] text-white pt-16 pb-8 px-4 md:px-8 border-t-[6px] border-[#Ffbc06] mt-auto">
+            <div class="max-w-6xl mx-auto space-y-12">
+                
+                <!-- Main Footer Row -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 border-b border-gray-800 pb-8">
+                    <!-- Logo (20% Larger than Nav Logo) -->
+                    <div class="logo-container">
+                        <img src="logo.png" alt="Doxus Footer" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" class="h-10">
+                        <div class="hidden flex items-center justify-center w-12 h-12 rounded bg-[#Ffbc06] text-[#262a36] font-black text-xl">D</div>
+                    </div>
+                    
+                    <!-- Consultant Signature -->
+                    <div class="text-right">
+                        <span class="text-gray-500 text-[10px] font-bold tracking-widest uppercase block">FIRMA RESPONSABLE</span>
+                        <span class="text-white text-md font-extrabold tracking-widest block mt-1 uppercase">MAXIMILIANO ARÉCHIGA-MORALES</span>
+                    </div>
+                </div>
+                
+                <!-- Disclaimers & Copyright -->
+                <div class="space-y-6 text-justify">
+                    <!-- Legal Disclaimer Text -->
+                    <p class="text-gray-500 text-[10px] leading-relaxed uppercase">
+                        LA INFORMACIÓN PRESENTADA AQUÍ ES UN RESUMEN GENERAL DE LA OPERACIÓN QUE FUE REFERIDA PARA SU REVISIÓN. SE RECOMIENDA CONSULTAR CADA CONTRATO RELACIONADO Y COMENTAR CON EL PROFESIONISTA DE SU CONFIANZA EL ALCANCE DE LAS DECISIONES.
+                    </p>
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-center text-[10px] text-gray-500 font-bold tracking-wider pt-4 border-t border-gray-800/50 gap-4">
+                        <!-- Copyright text -->
+                        <span>© 2026 DOXUS - TODOS LOS DERECHOS RESERVADOS</span>
+                        <span class="flex items-center gap-2">
+                            <i class="fa-solid fa-shield"></i> ENCRYPTION PROTOCOL ACTIVE
+                        </span>
+                    </div>
+                </div>
+                
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- SCRIPT FOR LOCK SCREEN -->
+    <script>
+        function validatePassword() {
+            const passwordInput = document.getElementById('password-input').value;
+            const errorAlert = document.getElementById('error-alert');
+            const lockScreen = document.getElementById('lock-screen');
+            const appContent = document.getElementById('app-content');
+            
+            // Password set to DOXUS
+            if (passwordInput === 'DOXUS') {
+                errorAlert.classList.add('hidden');
+                
+                lockScreen.classList.add('transition-all', 'duration-500', 'opacity-0', 'pointer-events-none');
+                appContent.classList.remove('opacity-0');
+                appContent.classList.add('opacity-100');
+                
+                setTimeout(() => {
+                    lockScreen.style.display = 'none';
+                }, 500);
+            } else {
+                errorAlert.classList.remove('hidden');
+                errorAlert.classList.add('flex', 'animate-shake');
+                document.getElementById('password-input').value = '';
+            }
+        }
+
+        document.getElementById('password-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                validatePassword();
+            }
+        });
+    </script>
+</body>
+</html>
